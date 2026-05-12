@@ -1,0 +1,26 @@
+// Traceability: FR-1 (refined), NFR-1 | UML: Note
+#include "Note.h"
+#include <utility>
+#include <stdexcept>
+
+// Traceability: FR-1 (refined) | UML: Note.Note
+Note::Note(UUID uuid, std::string title)
+    : uuid_(std::move(uuid))
+    , title_(std::move(title))
+    , createdAt_(std::time(nullptr))
+    , history_(std::make_unique<VersionHistory>())
+{
+    if (uuid_.empty()) throw std::invalid_argument("UUID must not be empty");
+}
+
+// Traceability: FR-1 (refined) | UML: Note.getUUID
+const UUID& Note::getUUID() const { return uuid_; }
+
+// Traceability: FR-1 (refined) | UML: Note.getTitle
+const std::string& Note::getTitle() const { return title_; }
+
+// Traceability: FR-1 (refined) | UML: Note.getCreatedAt
+std::time_t Note::getCreatedAt() const { return createdAt_; }
+
+// Traceability: NFR-3 (refined stub) | UML: Note.getVersionHistory
+const VersionHistory& Note::getVersionHistory() const { return *history_; }

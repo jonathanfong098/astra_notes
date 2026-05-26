@@ -4,7 +4,7 @@
 #include "../model/Note.h"
 #include "NoteFactory.h"
 #include "../storage/StorageInterface.h"
-#include <map>
+#include <unordered_map>
 #include <memory>
 #include <string>
 #include <vector>
@@ -42,10 +42,11 @@ public:
 
     // Exposes the notes map for read-only iteration by CLIView.
     // Traceability: NFR-1 | UML: NoteManager.getNotes
-    const std::map<UUID, std::unique_ptr<Note>>& getNotes() const;
+    const std::unordered_map<UUID, std::unique_ptr<Note>>& getNotes() const;
 
 private:
-    std::map<UUID, std::unique_ptr<Note>> notes_; // owned
+    // NFR-1: unordered_map gives O(1) average UUID lookup vs O(log n) for std::map.
+    std::unordered_map<UUID, std::unique_ptr<Note>> notes_; // owned
     NoteFactory& factory_;                         // injected, not owned
     StorageInterface& storage_;                    // injected, not owned
 };

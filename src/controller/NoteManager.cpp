@@ -42,6 +42,6 @@ void NoteManager::loadAll() {
 }
 
 // Traceability: NFR-1 | UML: NoteManager.getNotes
-const std::map<UUID, std::unique_ptr<Note>>& NoteManager::getNotes() const {
+const std::unordered_map<UUID, std::unique_ptr<Note>>& NoteManager::getNotes() const {
     return notes_;
 }

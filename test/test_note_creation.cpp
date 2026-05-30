@@ -50,3 +50,28 @@ TEST(NoteCreation, TwoNotesWithSameTitle_ReceiveDistinctUUIDs) {
     auto n2 = factory.create("text", "Idea");
     EXPECT_NE(n1->getUUID(), n2->getUUID());
 }
+
+// Traceability: FR-6 (refined) | UML: NoteManager.searchByTitle
+TEST(SearchByTitle, CaseInsensitive_UpperQueryMatchesLowerTitle) {
+    NoteFactory factory;
+    NullStorage storage;
+    NoteManager manager(factory, storage);
+
+    manager.add(factory.create("text", "alpha notes"));
+    manager.add(factory.create("text", "Beta reminder"));
+
+    const auto results = manager.searchByTitle("ALPHA");
+    ASSERT_EQ(results.size(), 1u);
+    EXPECT_EQ(results[0], "alpha notes");
+}
+
+// Traceability: FR-6 (refined) | UML: NoteManager.searchByTitle
+TEST(SearchByTitle, NoMatch_ReturnsEmptyVector) {
+    NoteFactory factory;
+    NullStorage storage;
+    NoteManager manager(factory, storage);
+
+    manager.add(factory.create("text", "Meeting notes"));
+
+    EXPECT_TRUE(manager.searchByTitle("zzz").empty());
+}

@@ -1,8 +1,24 @@
-// Traceability: NFR-1, FR-1 (refined) | UML: NoteManager
+// Traceability: NFR-1, FR-1 (refined), FR-2 (refined) | UML: NoteManager
 #include "NoteManager.h"
+#include "../model/TextNote.h"
 #include <stdexcept>
 #include <algorithm>
 #include <cctype>
+
+namespace {
+
+// Trims leading and trailing ASCII whitespace.
+std::string trim(const std::string& s) {
+    auto start = s.begin();
+    while (start != s.end() && std::isspace(static_cast<unsigned char>(*start)))
+        ++start;
+    auto end = s.end();
+    while (end != start && std::isspace(static_cast<unsigned char>(*(end - 1))))
+        --end;
+    return {start, end};
+}
+
+} // anonymous namespace
 
 // Traceability: NFR-1 | UML: NoteManager.NoteManager
 NoteManager::NoteManager(NoteFactory& factory, StorageInterface& storage)
@@ -42,6 +58,37 @@ std::vector<std::string> NoteManager::searchByTitle(const std::string& query) co
             results.push_back(note->getTitle());
     }
     return results;
+}
+
+// Traceability: FR-2 (refined) | UML: NoteManager.editTitle
+Status NoteManager::editTitle(const UUID& uuid, const std::string& newTitle) {
+    auto it = notes_.find(uuid);
+    if (it == notes_.end()) return Status::NOT_FOUND;
+
+    auto* textNote = dynamic_cast<TextNote*>(it->second.get());
+    if (!textNote) return Status::INVALID_INPUT;
+
+    // Validate before any mutation (atomic semantics — FR-2).
+    const std::string trimmed = trim(newTitle);
+    if (trimmed.empty() || trimmed.size() > 255)
+        return Status::INVALID_INPUT;
+
+    textNote->setTitle(trimmed);
+    textNote->refreshLastModified();
+    return Status::OK;
+}
+
+// Traceability: FR-2 (refined) | UML: NoteManager.editBody
+Status NoteManager::editBody(const UUID& uuid, const std::string& newBody) {
+    auto it = notes_.find(uuid);
+    if (it == notes_.end()) return Status::NOT_FOUND;
+
+    auto* textNote = dynamic_cast<TextNote*>(it->second.get());
+    if (!textNote) return Status::INVALID_INPUT;
+
+    textNote->setBody(newBody);
+    textNote->refreshLastModified();
+    return Status::OK;
 }
 
 // Traceability: FR-5 (refined stub) | UML: NoteManager.persistAll

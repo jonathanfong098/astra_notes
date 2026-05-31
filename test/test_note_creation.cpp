@@ -1,9 +1,10 @@
-// Traceability: FR-1 (refined) | UML: NoteFactory.create, NoteManager.add
+// Traceability: FR-1 (refined), FR-2 (refined) | UML: NoteFactory.create, NoteManager.add
 #include <gtest/gtest.h>
 #include "controller/NoteFactory.h"
 #include "controller/NoteManager.h"
 #include "storage/StorageInterface.h"
 #include "model/Note.h"
+#include "model/TextNote.h"
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -106,4 +107,56 @@ TEST(NoteCreation, RejectsTitleExceeding255Chars) {
     NoteFactory factory;
     const std::string longTitle(256, 'x');
     EXPECT_THROW(factory.create("text", longTitle), std::invalid_argument);
+}
+
+// Traceability: FR-2 (refined) | UML: NoteManager.editBody
+TEST(EditTextNote, UpdatesBodyAndTimestamp) {
+    NoteFactory factory;
+    NullStorage storage;
+    NoteManager manager(factory, storage);
+
+    auto note = factory.create("text", "My note");
+    const UUID uuid = note->getUUID();
+    const std::time_t originalCreatedAt = note->getCreatedAt();
+    manager.add(std::move(note));
+
+    const Status s = manager.editBody(uuid, "Updated body");
+    EXPECT_EQ(s, Status::OK);
+
+    const Note* updated = manager.findByUUID(uuid);
+    ASSERT_NE(updated, nullptr);
+    const auto* textNote = dynamic_cast<const TextNote*>(updated);
+    ASSERT_NE(textNote, nullptr);
+    EXPECT_EQ(textNote->getBody(), "Updated body");
+    EXPECT_EQ(updated->getCreatedAt(), originalCreatedAt);
+    EXPECT_GE(updated->getLastModifiedAt(), originalCreatedAt);
+}
+
+// Traceability: FR-2 (refined), FR-1a (refined) | UML: NoteManager.editTitle
+TEST(EditTextNote, RejectsEmptyTitle) {
+    NoteFactory factory;
+    NullStorage storage;
+    NoteManager manager(factory, storage);
+
+    auto note = factory.create("text", "Original title");
+    const UUID uuid = note->getUUID();
+    manager.add(std::move(note));
+
+    const Status s = manager.editTitle(uuid, "");
+    EXPECT_EQ(s, Status::INVALID_INPUT);
+
+    // Note must be fully unchanged after failed edit (atomic semantics — FR-2).
+    const Note* unchanged = manager.findByUUID(uuid);
+    ASSERT_NE(unchanged, nullptr);
+    EXPECT_EQ(unchanged->getTitle(), "Original title");
+}
+
+// Traceability: FR-2 (refined) | UML: NoteManager.editTitle
+TEST(EditTextNote, MissingUUID_ReturnsNotFound) {
+    NoteFactory factory;
+    NullStorage storage;
+    NoteManager manager(factory, storage);
+
+    const Status s = manager.editTitle("nonexistent-uuid", "New title");
+    EXPECT_EQ(s, Status::NOT_FOUND);
 }

@@ -19,6 +19,10 @@ public:
     // Traceability: SPR-1 | UML: SecureNote.getCiphertext
     const std::vector<std::byte>& getCiphertext() const;
 
+    // Returns mutable reference to ciphertext for zeroing on delete (FR-3, SPR-1).
+    // Traceability: FR-3 (refined) | UML: SecureNote.getCiphertextMutable
+    std::vector<std::byte>& getCiphertextMutable();
+
     // TODO: Sprint N — implement encrypt(passphrase) and decrypt(passphrase)
     // using engine_. Do NOT implement this sprint (SPR-1, SPR-2 scope gate).
 

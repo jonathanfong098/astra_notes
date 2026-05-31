@@ -12,3 +12,6 @@ std::string SecureNote::getType() const { return "secure"; }
 
 // Traceability: SPR-1 | UML: SecureNote.getCiphertext
 const std::vector<std::byte>& SecureNote::getCiphertext() const { return ciphertext_; }
+
+// Traceability: FR-3 (refined) | UML: SecureNote.getCiphertextMutable
+std::vector<std::byte>& SecureNote::getCiphertextMutable() { return ciphertext_; }

@@ -1,6 +1,7 @@
-// Traceability: NFR-1, FR-1 (refined), FR-2 (refined) | UML: NoteManager
+// Traceability: NFR-1, FR-1 (refined), FR-2 (refined), FR-3 (refined) | UML: NoteManager
 #include "NoteManager.h"
 #include "../model/TextNote.h"
+#include "../model/SecureNote.h"
 #include <stdexcept>
 #include <algorithm>
 #include <cctype>
@@ -33,9 +34,18 @@ void NoteManager::add(std::unique_ptr<Note> note) {
     notes_.emplace(id, std::move(note));
 }
 
-// Traceability: FR-4 (refined stub) | UML: NoteManager.remove
-void NoteManager::remove(const UUID& uuid) {
-    notes_.erase(uuid);
+// Traceability: FR-3 (refined) | UML: NoteManager.remove
+Status NoteManager::remove(const UUID& uuid) {
+    auto it = notes_.find(uuid);
+    if (it == notes_.end()) return Status::NOT_FOUND;
+
+    // Zero ciphertext before deallocation for SecureNote (FR-3, SPR-1).
+    if (auto* sn = dynamic_cast<SecureNote*>(it->second.get())) {
+        auto& bytes = sn->getCiphertextMutable();
+        std::fill(bytes.begin(), bytes.end(), std::byte{0});
+    }
+    notes_.erase(it);
+    return Status::OK;
 }
 
 // Traceability: FR-1 (refined) | UML: NoteManager.findByUUID

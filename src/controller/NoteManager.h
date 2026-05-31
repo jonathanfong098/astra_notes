@@ -19,9 +19,10 @@ public:
     // Traceability: FR-1 (refined) | UML: NoteManager.add
     void add(std::unique_ptr<Note> note);
 
-    // Removes the note with the given UUID; no-op if not found.
-    // Traceability: FR-4 (refined stub) | UML: NoteManager.remove
-    void remove(const UUID& uuid);
+    // Removes the note by UUID. Returns OK if deleted, NOT_FOUND if absent.
+    // For SecureNote: zeroes ciphertext_ before deallocation (FR-3, SPR-1).
+    // Traceability: FR-3 (refined) | UML: NoteManager.remove
+    Status remove(const UUID& uuid);
 
     // Updates the title of an existing TextNote. Validates per FR-1a (non-empty, ≤255 chars).
     // Returns NOT_FOUND if UUID absent, INVALID_INPUT if not a TextNote or title invalid.

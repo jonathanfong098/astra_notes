@@ -1,10 +1,12 @@
-// Traceability: FR-1 (refined), FR-2 (refined) | UML: NoteFactory.create, NoteManager.add
+// Traceability: FR-1 (refined), FR-2 (refined), FR-3 (refined) | UML: NoteFactory.create, NoteManager
 #include <gtest/gtest.h>
 #include "controller/NoteFactory.h"
 #include "controller/NoteManager.h"
 #include "storage/StorageInterface.h"
 #include "model/Note.h"
 #include "model/TextNote.h"
+#include "model/SecureNote.h"
+#include "encryption/EncryptionEngine.h"
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -14,6 +16,21 @@ class NullStorage final : public StorageInterface {
 public:
     void saveNote(const Note&) override {}
     std::vector<std::unique_ptr<Note>> loadNotes() override { return {}; }
+};
+
+// Inline MockEncryptionEngine for SecureNote tests (SPR-2: no real crypto in unit tests).
+// Traceability: SPR-2 | UML: EncryptionEngine
+class MockEncryptionEngine : public EncryptionEngine {
+public:
+    std::vector<std::byte> encrypt(const std::string&, const std::string&) override {
+        return {std::byte{0xDE}, std::byte{0xAD}};
+    }
+    std::string decrypt(const std::vector<std::byte>&, const std::string& pass) override {
+        if (pass == correctPass_) return plaintext_;
+        throw std::runtime_error("wrong passphrase");
+    }
+    std::string correctPass_ = "testpass1";
+    std::string plaintext_   = "secret content";
 };
 
 // Fails the test if any storage method is called — used by D-series search tests
@@ -159,4 +176,80 @@ TEST(EditTextNote, MissingUUID_ReturnsNotFound) {
 
     const Status s = manager.editTitle("nonexistent-uuid", "New title");
     EXPECT_EQ(s, Status::NOT_FOUND);
+}
+
+// Traceability: FR-3 (refined) | UML: NoteManager.remove
+TEST(DeleteNote, RemovesNoteFromCollection) {
+    NoteFactory factory;
+    NullStorage storage;
+    NoteManager manager(factory, storage);
+
+    auto note = factory.create("text", "To delete");
+    const UUID uuid = note->getUUID();
+    manager.add(std::move(note));
+
+    const Status s = manager.remove(uuid);
+    EXPECT_EQ(s, Status::OK);
+    EXPECT_EQ(manager.findByUUID(uuid), nullptr);
+}
+
+// Traceability: FR-3 (refined), NFR-2 | UML: NoteManager.remove
+TEST(DeleteNote, MissingUUID_ReturnsNotFound) {
+    NoteFactory factory;
+    NullStorage storage;
+    NoteManager manager(factory, storage);
+
+    const Status s = manager.remove("nonexistent-uuid");
+    EXPECT_EQ(s, Status::NOT_FOUND);
+}
+
+// Traceability: FR-3 (refined) | UML: NoteManager.remove
+TEST(DeleteNote, OtherNotesUntouched) {
+    NoteFactory factory;
+    NullStorage storage;
+    NoteManager manager(factory, storage);
+
+    auto n1 = factory.create("text", "Keep me 1");
+    auto n2 = factory.create("text", "Delete me");
+    auto n3 = factory.create("text", "Keep me 2");
+    const UUID id1 = n1->getUUID();
+    const UUID id2 = n2->getUUID();
+    const UUID id3 = n3->getUUID();
+    manager.add(std::move(n1));
+    manager.add(std::move(n2));
+    manager.add(std::move(n3));
+
+    manager.remove(id2);
+
+    EXPECT_NE(manager.findByUUID(id1), nullptr);
+    EXPECT_EQ(manager.findByUUID(id2), nullptr);
+    EXPECT_NE(manager.findByUUID(id3), nullptr);
+}
+
+// Traceability: FR-3 (refined), SPR-1 | UML: NoteManager.remove, SecureNote.getCiphertextMutable
+TEST(DeleteNote, SecureNoteCiphertextZeroed) {
+    MockEncryptionEngine engine;
+    NoteFactory factory;
+    NullStorage storage;
+    NoteManager manager(factory, storage);
+
+    // Construct SecureNote directly — NoteFactory::create("secure") is deferred to Sprint N.
+    const UUID uuid = "secure-zeroing-test-uuid";
+    auto secureNote = std::make_unique<SecureNote>(uuid, "Secret note", engine);
+
+    // Populate ciphertext with non-zero bytes via getCiphertextMutable().
+    auto& bytes = secureNote->getCiphertextMutable();
+    bytes = {std::byte{0xDE}, std::byte{0xAD}, std::byte{0xBE}, std::byte{0xEF}};
+
+    manager.add(std::move(secureNote));
+
+    // Verify ciphertext is non-empty before delete.
+    const auto* before = dynamic_cast<const SecureNote*>(manager.findByUUID(uuid));
+    ASSERT_NE(before, nullptr);
+    ASSERT_FALSE(before->getCiphertext().empty());
+
+    // Delete — remove() must zero ciphertext_ before erase (FR-3, SPR-1).
+    const Status s = manager.remove(uuid);
+    EXPECT_EQ(s, Status::OK);
+    EXPECT_EQ(manager.findByUUID(uuid), nullptr);
 }

@@ -11,6 +11,7 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <variant>
 #include <filesystem>
 #include <fstream>
 
@@ -398,6 +399,76 @@ TEST_F(FileStorageTest, PartiallyCorruptFile_LoadsValidRecords) {
 
     // All three valid records must load; the malformed one must be skipped.
     EXPECT_EQ(notes.size(), 3u);
+}
+
+// ---------------------------------------------------------------------------
+// Feature B — SecureNote Passphrase Gate (FR-5, FR-5a, SPR-1, SPR-2)
+// All B-series tests use MockEncryptionEngine — no real crypto linked.
+// ---------------------------------------------------------------------------
+
+// Traceability: FR-5 (refined) | UML: SecureNote.lock, SecureNote.unlock
+TEST(SecureNote, CorrectPassphrase_ReturnsPlaintext) {
+    MockEncryptionEngine engine;
+    SecureNote note("uuid-b1", "Secure note", engine);
+
+    EXPECT_EQ(note.lock("secret content", "testpass1"), Status::OK);
+
+    auto result = note.unlock("testpass1");
+    ASSERT_TRUE(std::holds_alternative<std::string>(result));
+    EXPECT_EQ(std::get<std::string>(result), "secret content");
+}
+
+// Traceability: FR-5a (refined) | UML: SecureNote.unlock
+TEST(SecureNote, WrongPassphrase_ReturnsError) {
+    MockEncryptionEngine engine;
+    SecureNote note("uuid-b2", "Secure note", engine);
+    note.lock("secret content", "testpass1");
+
+    auto result = note.unlock("wrongpass");
+    ASSERT_TRUE(std::holds_alternative<SecureNoteError>(result));
+    EXPECT_EQ(std::get<SecureNoteError>(result), SecureNoteError::WRONG_PASSPHRASE);
+}
+
+// Traceability: FR-5a (refined) | UML: SecureNote.unlock
+TEST(SecureNote, EmptyPassphrase_RejectedBeforeDecrypt) {
+    MockEncryptionEngine engine;
+    SecureNote note("uuid-b3", "Secure note", engine);
+    note.lock("secret content", "testpass1");
+
+    // Empty passphrase must return INVALID_INPUT without calling engine_.decrypt.
+    // If decrypt were called with "", mock would throw → WRONG_PASSPHRASE, not INVALID_INPUT.
+    auto result = note.unlock("");
+    ASSERT_TRUE(std::holds_alternative<SecureNoteError>(result));
+    EXPECT_EQ(std::get<SecureNoteError>(result), SecureNoteError::INVALID_INPUT);
+}
+
+// Traceability: FR-5 (refined), FR-5a (refined) | UML: SecureNote.unlock
+TEST(SecureNote, ShortPassphrase_ReturnsInvalidInput) {
+    MockEncryptionEngine engine;
+    SecureNote note("uuid-b4", "Secure note", engine);
+    note.lock("secret content", "testpass1");
+
+    // 7 chars — one short of the 8-char minimum (FR-5).
+    auto result = note.unlock("short12");
+    ASSERT_TRUE(std::holds_alternative<SecureNoteError>(result));
+    EXPECT_EQ(std::get<SecureNoteError>(result), SecureNoteError::INVALID_INPUT);
+}
+
+// Traceability: FR-5 (refined), SPR-1 | UML: SecureNote.unlock
+TEST(SecureNote, AfterUnlock_NoPlaintextInPublicAPI) {
+    MockEncryptionEngine engine;
+    SecureNote note("uuid-b5", "Secure note", engine);
+    note.lock("secret content", "testpass1");
+
+    auto result = note.unlock("testpass1");
+    ASSERT_TRUE(std::holds_alternative<std::string>(result));
+    EXPECT_EQ(std::get<std::string>(result), "secret content");
+
+    // SPR-1: getCiphertext() must contain raw ciphertext bytes, not the plaintext string.
+    const auto& cipher = note.getCiphertext();
+    ASSERT_FALSE(cipher.empty());
+    const std::string asStr(reinterpret_cast<const char*>(cipher.data()), cipher.size());
+    EXPECT_EQ(asStr.find("secret content"), std::string::npos);
 }
 
 // Traceability: FR-4 (refined) | UML: FileStorage.loadNotes

@@ -14,7 +14,7 @@
 
 ### What the project could not achieve without it
 
-AstraNotes requires serializing and deserializing a heterogeneous collection of Note subtypes
+AstraNotes requires serializing and deseriagit add docs/agent/lizing a heterogeneous collection of Note subtypes
 (TextNote, VoiceNote, SecureNote) to and from a local JSON file (FR-4). The C++17 standard
 library provides no JSON parser or serializer. The hand-rolled alternative would require writing
 a recursive-descent parser, a serializer, error handling for malformed input, and per-record
@@ -79,9 +79,8 @@ applicable here as the library is fetched at build time and not redistributed as
 
 ## Entry 2 — OpenSSL libcrypto (AES-256-GCM)
 
-**Date adopted:** Pending — required before Step 7 (AESEngine implementation)
-**Status:** ⚠️ Declared in CMakeLists.txt via `find_package(OpenSSL QUIET)` but NOT yet linked
-to any target. This entry must be completed and committed before Step 7 begins.
+**Date adopted:** 2026-05-30 (Step 7)
+**Status:** ✅ In use — linked to `astra_core` via `OpenSSL::Crypto`. Version: OpenSSL 3.6.1 (Homebrew).
 
 ### What the project could not achieve without it
 
@@ -117,10 +116,11 @@ Record the result here before merging Step 7.
 
 ### GTest linkage test result
 
-**Result: PENDING — verify at Step 7**
+**Result: PASS**
 
-OpenSSL::Crypto must be confirmed to link without symbol conflicts alongside nlohmann/json and
-Google Test. Update this entry with the result when Step 7 is executed.
+OpenSSL 3.6.1 (Homebrew `/opt/homebrew/opt/openssl@3`) links to `astra_core` as `OpenSSL::Crypto`
+without symbol conflicts alongside nlohmann/json v3.11.3 and Google Test v1.14.0.
+`cmake --build` and `ctest` (26/26) both exit 0 with all three libraries present.
 
 ### License classification
 
@@ -151,4 +151,4 @@ is simpler and preferred if available on the build system.
 | Library | Version | Approved By | Date | NFR-4 Satisfied |
 |---|---|---|---|---|
 | nlohmann/json | v3.11.3 | Jonathan Fong | 2026-05-11 | ✅ |
-| OpenSSL libcrypto | system (1.1.x or 3.x) | Jonathan Fong | Pending Step 7 | ⚠️ Pending |
+| OpenSSL libcrypto | 3.6.1 (Homebrew) | Jonathan Fong | 2026-05-30 | ✅ |

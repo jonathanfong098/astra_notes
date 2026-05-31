@@ -26,7 +26,10 @@ FetchContent_Declare(
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
-# OpenSSL — declared but NOT linked to any target this sprint
+# OpenSSL — path hint for Homebrew on macOS; linked to astra_core in Step 7.
+if(APPLE AND EXISTS /opt/homebrew/opt/openssl@3)
+    list(PREPEND CMAKE_PREFIX_PATH /opt/homebrew/opt/openssl@3)
+endif()
 find_package(OpenSSL QUIET)
 
 # Core library: all model, controller, and view sources
@@ -39,12 +42,16 @@ add_library(astra_core STATIC
     src/controller/NoteFactory.cpp
     src/controller/NoteManager.cpp
     src/storage/FileStorage.cpp
+    src/encryption/AESEngine.cpp
     src/view/CLIView.cpp
 )
 target_include_directories(astra_core PUBLIC
     src
 )
 target_link_libraries(astra_core PUBLIC nlohmann_json::nlohmann_json)
+if(OPENSSL_FOUND)
+    target_link_libraries(astra_core PUBLIC OpenSSL::Crypto)
+endif()
 
 # Main executable
 add_executable(astra_notes src/main.cpp)

@@ -8,6 +8,7 @@
 #include "model/TextNote.h"
 #include "model/SecureNote.h"
 #include "encryption/EncryptionEngine.h"
+#include "encryption/AESEngine.h"
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -469,6 +470,44 @@ TEST(SecureNote, AfterUnlock_NoPlaintextInPublicAPI) {
     ASSERT_FALSE(cipher.empty());
     const std::string asStr(reinterpret_cast<const char*>(cipher.data()), cipher.size());
     EXPECT_EQ(asStr.find("secret content"), std::string::npos);
+}
+
+// Traceability: SPR-1 | UML: AESEngine, FileStorage, SecureNote (Integration)
+TEST_F(FileStorageTest, FileStorage_CiphertextOnly) {
+    AESEngine engine;
+    NoteFactory factory;
+    FileStorage storage(tmpPath_, factory, &engine);
+    NullStorage nullStorage;
+    NoteManager manager(factory, nullStorage);
+
+    // Create and lock a SecureNote with real AES-256-GCM encryption.
+    auto secureNote = std::make_unique<SecureNote>("secure-b6-uuid", "B6 note", engine);
+    ASSERT_EQ(secureNote->lock("secret plaintext content", "realpassword123"), Status::OK);
+    manager.add(std::move(secureNote));
+
+    // Persist via FileStorage (atomic write).
+    storage.saveAll(manager.getNotes());
+
+    // Load the raw JSON file and inspect its contents as a string.
+    std::ifstream jsonFile(tmpPath_);
+    ASSERT_TRUE(jsonFile.is_open());
+    const std::string content(std::istreambuf_iterator<char>(jsonFile), {});
+
+    // SPR-1: ciphertext field must exist; no plaintext or body field.
+    EXPECT_NE(content.find("\"ciphertext\""),   std::string::npos);
+    EXPECT_EQ(content.find("\"body\""),         std::string::npos);
+    EXPECT_EQ(content.find("\"plaintext\""),    std::string::npos);
+    // The actual plaintext must not appear anywhere in the file.
+    EXPECT_EQ(content.find("secret plaintext content"), std::string::npos);
+
+    // Verify round-trip: reload and decrypt successfully.
+    auto loaded = storage.loadNotes();
+    ASSERT_EQ(loaded.size(), 1u);
+    auto* sn = dynamic_cast<SecureNote*>(loaded[0].get());
+    ASSERT_NE(sn, nullptr);
+    auto unlockResult = sn->unlock("realpassword123");
+    ASSERT_TRUE(std::holds_alternative<std::string>(unlockResult));
+    EXPECT_EQ(std::get<std::string>(unlockResult), "secret plaintext content");
 }
 
 // Traceability: FR-4 (refined) | UML: FileStorage.loadNotes

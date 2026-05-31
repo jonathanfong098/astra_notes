@@ -53,6 +53,9 @@ std::unique_ptr<Note> NoteFactory::create(const std::string& type,
     const std::string trimmedTitle = trim(title);
     if (trimmedTitle.empty())
         throw std::invalid_argument("Note title must not be empty");
+    // Traceability: FR-1a (refined) | UML: NoteFactory.create
+    if (trimmedTitle.size() > 255)
+        throw std::invalid_argument("Note title must not exceed 255 characters");
 
     const UUID uuid = generateUUID();
 

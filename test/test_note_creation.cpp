@@ -15,6 +15,17 @@ public:
     std::vector<std::unique_ptr<Note>> loadNotes() override { return {}; }
 };
 
+// Fails the test if any storage method is called — used by D-series search tests
+// to prove searchByTitle() performs no file I/O (FR-6 / US-06 AC-3).
+class FailOnCallStorage final : public StorageInterface {
+public:
+    void saveNote(const Note&) override { FAIL() << "Search must not call saveNote"; }
+    std::vector<std::unique_ptr<Note>> loadNotes() override {
+        ADD_FAILURE() << "Search must not call loadNotes";
+        return {};
+    }
+};
+
 // Traceability: FR-1 (refined) | UML: NoteFactory.create, NoteManager.add
 TEST(NoteCreation, HappyPath_TextNoteCreatedAndStored) {
     NoteFactory factory;
@@ -74,4 +85,25 @@ TEST(SearchByTitle, NoMatch_ReturnsEmptyVector) {
     manager.add(factory.create("text", "Meeting notes"));
 
     EXPECT_TRUE(manager.searchByTitle("zzz").empty());
+}
+
+// Traceability: FR-6 (refined) | UML: NoteManager.searchByTitle
+TEST(SearchByTitle, EmptyQuery_ReturnsAllNotes) {
+    NoteFactory factory;
+    FailOnCallStorage storage;
+    NoteManager manager(factory, storage);
+
+    manager.add(factory.create("text", "Alpha"));
+    manager.add(factory.create("text", "Beta"));
+    manager.add(factory.create("text", "Gamma"));
+
+    const auto results = manager.searchByTitle("");
+    EXPECT_EQ(results.size(), 3u);
+}
+
+// Traceability: FR-1a (refined) | UML: NoteFactory.create
+TEST(NoteCreation, RejectsTitleExceeding255Chars) {
+    NoteFactory factory;
+    const std::string longTitle(256, 'x');
+    EXPECT_THROW(factory.create("text", longTitle), std::invalid_argument);
 }

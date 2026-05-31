@@ -12,6 +12,7 @@
 #include <stdexcept>
 #include <string>
 #include <filesystem>
+#include <fstream>
 
 // Minimal no-op StorageInterface for unit tests — no file I/O.
 class NullStorage final : public StorageInterface {
@@ -271,6 +272,14 @@ protected:
     void TearDown() override {
         std::filesystem::remove(tmpPath_);
         std::filesystem::remove(tmpPath_ + ".tmp");
+        // Remove any quarantine files left by C4 (FR-4b)
+        const auto parent = std::filesystem::path(tmpPath_).parent_path();
+        const auto stem   = std::filesystem::path(tmpPath_).filename().string();
+        for (const auto& entry : std::filesystem::directory_iterator(parent)) {
+            const std::string name = entry.path().filename().string();
+            if (name.rfind(stem + ".quarantine.", 0) == 0)
+                std::filesystem::remove(entry.path());
+        }
     }
 };
 
@@ -341,4 +350,70 @@ TEST_F(FileStorageTest, MissingFile_ReturnsEmptyCollection) {
     FileStorage storage("/nonexistent/path/astranotes_missing.json", factory);
     auto notes = storage.loadNotes();
     EXPECT_TRUE(notes.empty());
+}
+
+// Traceability: FR-4b (refined) | UML: FileStorage.loadNotes
+TEST_F(FileStorageTest, CorruptFile_QuarantinesAndReturnsEmpty) {
+    // Write unparseable content to the file.
+    { std::ofstream out(tmpPath_); out << "not valid json {{{"; }
+
+    NoteFactory factory;
+    FileStorage storage(tmpPath_, factory);
+    auto notes = storage.loadNotes();
+    EXPECT_TRUE(notes.empty());
+
+    // Original file must be gone (renamed to quarantine).
+    EXPECT_FALSE(std::filesystem::exists(tmpPath_));
+
+    // A quarantine file with a Unix timestamp suffix must exist.
+    bool quarantineFound = false;
+    const auto parent = std::filesystem::path(tmpPath_).parent_path();
+    const auto stem   = std::filesystem::path(tmpPath_).filename().string();
+    for (const auto& entry : std::filesystem::directory_iterator(parent)) {
+        if (entry.path().filename().string().rfind(stem + ".quarantine.", 0) == 0) {
+            quarantineFound = true;
+            break;
+        }
+    }
+    EXPECT_TRUE(quarantineFound);
+}
+
+// Traceability: FR-4b (refined) | UML: FileStorage.loadNotes
+TEST_F(FileStorageTest, PartiallyCorruptFile_LoadsValidRecords) {
+    // Build an array: valid, malformed (missing "type"), valid, valid.
+    // The malformed record sits between valid ones to prove loading continues after it.
+    nlohmann::json arr = nlohmann::json::array();
+    arr.push_back({{"uuid","valid-1"},{"type","text"},{"title","Note 1"},
+                   {"body",""},{"createdAt",1000},{"lastModifiedAt",1000}});
+    arr.push_back({{"uuid","bad"},{"title","Bad — no type field"}});   // malformed
+    arr.push_back({{"uuid","valid-2"},{"type","text"},{"title","Note 2"},
+                   {"body",""},{"createdAt",2000},{"lastModifiedAt",2000}});
+    arr.push_back({{"uuid","valid-3"},{"type","voice"},{"title","Note 3"},
+                   {"audioPath",""},{"createdAt",3000},{"lastModifiedAt",3000}});
+    { std::ofstream out(tmpPath_); out << arr.dump(2); }
+
+    NoteFactory factory;
+    FileStorage storage(tmpPath_, factory);
+    auto notes = storage.loadNotes();
+
+    // All three valid records must load; the malformed one must be skipped.
+    EXPECT_EQ(notes.size(), 3u);
+}
+
+// Traceability: FR-4 (refined) | UML: FileStorage.loadNotes
+TEST_F(FileStorageTest, DuplicateUUID_DiscardsSecond) {
+    const std::string sharedUUID = "dup-uuid";
+    nlohmann::json arr = nlohmann::json::array();
+    arr.push_back({{"uuid",sharedUUID},{"type","text"},{"title","First"},
+                   {"body","first body"},{"createdAt",1000},{"lastModifiedAt",1000}});
+    arr.push_back({{"uuid",sharedUUID},{"type","text"},{"title","Second"},
+                   {"body","second body"},{"createdAt",2000},{"lastModifiedAt",2000}});
+    { std::ofstream out(tmpPath_); out << arr.dump(2); }
+
+    NoteFactory factory;
+    FileStorage storage(tmpPath_, factory);
+    auto notes = storage.loadNotes();
+
+    ASSERT_EQ(notes.size(), 1u);
+    EXPECT_EQ(notes[0]->getTitle(), "First"); // FR-4: first record wins
 }

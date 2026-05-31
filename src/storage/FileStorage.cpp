@@ -1,4 +1,4 @@
-// Traceability: FR-4 (refined), FR-4a (refined), SPR-1 | UML: FileStorage
+// Traceability: FR-4 (refined), FR-4a (refined), FR-4b (refined), SPR-1 | UML: FileStorage
 #include "FileStorage.h"
 #include "../model/TextNote.h"
 #include "../model/VoiceNote.h"
@@ -76,7 +76,7 @@ void FileStorage::saveAll(const std::unordered_map<UUID, std::unique_ptr<Note>>&
     std::rename(tmpPath.c_str(), filePath_.c_str());
 }
 
-// Traceability: FR-4 (refined), FR-4a (refined) | UML: FileStorage.loadNotes
+// Traceability: FR-4 (refined), FR-4a (refined), FR-4b (refined) | UML: FileStorage.loadNotes
 std::vector<std::unique_ptr<Note>> FileStorage::loadNotes() {
     std::ifstream in(filePath_);
     if (!in.is_open()) return {}; // FR-4a: missing file is not an error
@@ -85,8 +85,12 @@ std::vector<std::unique_ptr<Note>> FileStorage::loadNotes() {
     try {
         in >> arr;
     } catch (const nlohmann::json::exception& e) {
-        std::cerr << "FileStorage: failed to parse " << filePath_
-                  << ": " << e.what() << '\n';
+        in.close(); // release file handle before rename (FR-4b)
+        const std::string quarantinePath =
+            filePath_ + ".quarantine." + std::to_string(std::time(nullptr));
+        std::rename(filePath_.c_str(), quarantinePath.c_str());
+        std::cerr << "FileStorage: corrupt file quarantined as "
+                  << quarantinePath << ": " << e.what() << '\n';
         return {};
     }
 

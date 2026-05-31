@@ -12,6 +12,11 @@ public:
     // Traceability: SPR-2 | UML: SecureNote.SecureNote
     SecureNote(UUID uuid, std::string title, EncryptionEngine& engine);
 
+    // Reconstruction constructor — restores ciphertext from persisted JSON record.
+    // Traceability: FR-4 (refined) | UML: SecureNote.SecureNote
+    SecureNote(UUID uuid, std::string title, std::vector<std::byte> ciphertext,
+               EncryptionEngine& engine, std::time_t createdAt, std::time_t lastModifiedAt);
+
     // Traceability: FR-2 (refined stub) | UML: SecureNote.getType
     std::string getType() const override;
 

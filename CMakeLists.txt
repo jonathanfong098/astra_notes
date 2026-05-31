@@ -38,6 +38,7 @@ add_library(astra_core STATIC
     src/model/VersionHistory.cpp
     src/controller/NoteFactory.cpp
     src/controller/NoteManager.cpp
+    src/storage/FileStorage.cpp
     src/view/CLIView.cpp
 )
 target_include_directories(astra_core PUBLIC

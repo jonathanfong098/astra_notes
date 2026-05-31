@@ -8,6 +8,11 @@ class VoiceNote : public Note {
 public:
     VoiceNote(UUID uuid, std::string title);
 
+    // Reconstruction constructor — restores from persisted JSON record via NoteFactory::reconstructRecord.
+    // Traceability: FR-4 (refined) | UML: VoiceNote.VoiceNote
+    VoiceNote(UUID uuid, std::string title, std::string audioPath,
+              std::time_t createdAt, std::time_t lastModifiedAt);
+
     // Traceability: FR-3 (refined stub) | UML: VoiceNote.getType
     std::string getType() const override;
 

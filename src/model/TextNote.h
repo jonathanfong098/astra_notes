@@ -8,6 +8,11 @@ class TextNote : public Note {
 public:
     TextNote(UUID uuid, std::string title, std::string body = "");
 
+    // Reconstruction constructor — restores from persisted JSON record via NoteFactory::reconstructRecord.
+    // Traceability: FR-4 (refined) | UML: TextNote.TextNote
+    TextNote(UUID uuid, std::string title, std::string body,
+             std::time_t createdAt, std::time_t lastModifiedAt);
+
     // Traceability: FR-1 (refined) | UML: TextNote.getType
     std::string getType() const override;
 

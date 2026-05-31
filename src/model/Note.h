@@ -44,6 +44,11 @@ public:
     void refreshLastModified();
 
 protected:
+    // Reconstruction constructor: restores a note from persisted state.
+    // Used only by derived-class reconstruction constructors called from NoteFactory::reconstructRecord.
+    // Traceability: FR-4 (refined) | UML: Note.Note
+    Note(UUID uuid, std::string title, std::time_t createdAt, std::time_t lastModifiedAt);
+
     UUID uuid_;
     std::string title_;
     std::time_t createdAt_;

@@ -1,8 +1,9 @@
-// Traceability: FR-1 (refined), FR-2 (refined), FR-3 (refined) | UML: NoteFactory.create, NoteManager
+// Traceability: FR-1 (refined), FR-2 (refined), FR-3 (refined), FR-4 (refined) | UML: NoteFactory.create, NoteManager
 #include <gtest/gtest.h>
 #include "controller/NoteFactory.h"
 #include "controller/NoteManager.h"
 #include "storage/StorageInterface.h"
+#include "storage/FileStorage.h"
 #include "model/Note.h"
 #include "model/TextNote.h"
 #include "model/SecureNote.h"
@@ -10,6 +11,7 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <filesystem>
 
 // Minimal no-op StorageInterface for unit tests — no file I/O.
 class NullStorage final : public StorageInterface {
@@ -252,4 +254,91 @@ TEST(DeleteNote, SecureNoteCiphertextZeroed) {
     const Status s = manager.remove(uuid);
     EXPECT_EQ(s, Status::OK);
     EXPECT_EQ(manager.findByUUID(uuid), nullptr);
+}
+
+// ---------------------------------------------------------------------------
+// Feature C — JSON Persistence (FR-4, FR-4a)
+// All C-series tests use a per-test temp file; TearDown cleans it up.
+// Traceability: FR-4 (refined), FR-4a (refined) | UML: FileStorage
+// ---------------------------------------------------------------------------
+
+class FileStorageTest : public ::testing::Test {
+protected:
+    std::string tmpPath_;
+    void SetUp() override {
+        tmpPath_ = (std::filesystem::temp_directory_path() / "astranotes_test.json").string();
+    }
+    void TearDown() override {
+        std::filesystem::remove(tmpPath_);
+        std::filesystem::remove(tmpPath_ + ".tmp");
+    }
+};
+
+// Traceability: FR-4 (refined) | UML: FileStorage.saveAll, FileStorage.loadNotes
+TEST_F(FileStorageTest, RoundTrip_NotePreservesAllFields) {
+    NoteFactory factory;
+    FileStorage storage(tmpPath_, factory);
+    NullStorage nullStorage;
+    NoteManager manager(factory, nullStorage);
+
+    manager.add(factory.create("text", "Round trip note"));
+    const UUID uuid       = manager.getNotes().begin()->first;
+    manager.editBody(uuid, "Persisted body");
+    const std::time_t created  = manager.findByUUID(uuid)->getCreatedAt();
+    const std::time_t modified = manager.findByUUID(uuid)->getLastModifiedAt();
+
+    storage.saveAll(manager.getNotes());
+
+    NoteManager manager2(factory, nullStorage);
+    FileStorage storage2(tmpPath_, factory);
+    auto loaded = storage2.loadNotes();
+    ASSERT_EQ(loaded.size(), 1u);
+
+    const Note* note = loaded[0].get();
+    ASSERT_NE(note, nullptr);
+    EXPECT_EQ(note->getUUID(),           uuid);
+    EXPECT_EQ(note->getTitle(),          "Round trip note");
+    EXPECT_EQ(note->getType(),           "text");
+    EXPECT_EQ(note->getCreatedAt(),      created);
+    EXPECT_EQ(note->getLastModifiedAt(), modified);
+
+    const auto* tn = dynamic_cast<const TextNote*>(note);
+    ASSERT_NE(tn, nullptr);
+    EXPECT_EQ(tn->getBody(), "Persisted body");
+}
+
+// Traceability: FR-4 (refined) | UML: FileStorage.loadNotes, NoteFactory.reconstructRecord
+TEST_F(FileStorageTest, LoadsAllThreeConcreteTypes) {
+    MockEncryptionEngine engine;
+    NoteFactory factory;
+    NullStorage nullStorage;
+    NoteManager manager(factory, nullStorage);
+
+    manager.add(factory.create("text",  "Text note"));
+    manager.add(factory.create("voice", "Voice note"));
+    manager.add(std::make_unique<SecureNote>("secure-c2-uuid", "Secure note", engine));
+
+    FileStorage storage(tmpPath_, factory, &engine);
+    storage.saveAll(manager.getNotes());
+
+    auto loaded = storage.loadNotes();
+    ASSERT_EQ(loaded.size(), 3u);
+
+    int textCount = 0, voiceCount = 0, secureCount = 0;
+    for (const auto& n : loaded) {
+        if      (n->getType() == "text")   ++textCount;
+        else if (n->getType() == "voice")  ++voiceCount;
+        else if (n->getType() == "secure") ++secureCount;
+    }
+    EXPECT_EQ(textCount,   1);
+    EXPECT_EQ(voiceCount,  1);
+    EXPECT_EQ(secureCount, 1);
+}
+
+// Traceability: FR-4a (refined) | UML: FileStorage.loadNotes
+TEST_F(FileStorageTest, MissingFile_ReturnsEmptyCollection) {
+    NoteFactory factory;
+    FileStorage storage("/nonexistent/path/astranotes_missing.json", factory);
+    auto notes = storage.loadNotes();
+    EXPECT_TRUE(notes.empty());
 }

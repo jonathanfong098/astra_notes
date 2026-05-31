@@ -1,7 +1,9 @@
 #pragma once
-// Traceability: FR-1 (refined) | UML: NoteFactory
+// Traceability: FR-1 (refined), FR-4 (refined) | UML: NoteFactory
 
 #include "../model/Note.h"
+#include "../encryption/EncryptionEngine.h"
+#include <nlohmann/json.hpp>
 #include <memory>
 #include <string>
 
@@ -16,8 +18,10 @@ public:
     std::unique_ptr<Note> create(const std::string& type,
                                  const std::string& title) const;
 
-    // Reconstructs a Note from a persisted JSON record string.
-    // STUB: always throws std::runtime_error("not yet implemented") this sprint.
-    // Traceability: FR-5 (refined stub) | UML: NoteFactory.reconstructRecord
-    std::unique_ptr<Note> reconstructRecord(const std::string& jsonRecord) const;
+    // Reconstructs a Note from a persisted JSON record (FR-4).
+    // engine: required for SecureNote; if nullptr and type is "secure", returns nullptr (record skipped).
+    // Uses stored UUID and timestamps — does NOT generate a new UUID.
+    // Traceability: FR-4 (refined) | UML: NoteFactory.reconstructRecord
+    std::unique_ptr<Note> reconstructRecord(const nlohmann::json& record,
+                                             EncryptionEngine* engine = nullptr) const;
 };

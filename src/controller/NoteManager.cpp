@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <algorithm>
 #include <cctype>
+#include <iostream>
 
 namespace {
 
@@ -101,14 +102,23 @@ Status NoteManager::editBody(const UUID& uuid, const std::string& newBody) {
     return Status::OK;
 }
 
-// Traceability: FR-5 (refined stub) | UML: NoteManager.persistAll
+// Traceability: FR-4 (refined) | UML: NoteManager.persistAll
 void NoteManager::persistAll() const {
-    // stub — FileStorage body deferred
+    storage_.saveAll(notes_);
 }
 
-// Traceability: FR-5 (refined stub) | UML: NoteManager.loadAll
+// Traceability: FR-4 (refined) | UML: NoteManager.loadAll
 void NoteManager::loadAll() {
-    // stub — FileStorage body deferred
+    auto loaded = storage_.loadNotes();
+    for (auto& note : loaded) {
+        if (!note) continue;
+        const UUID id = note->getUUID();
+        if (!notes_.count(id))
+            notes_.emplace(id, std::move(note));
+        else
+            // FR-4: UUID collision handled by FileStorage; guard here too
+            std::cerr << "NoteManager::loadAll: duplicate UUID skipped: " << id << '\n';
+    }
 }
 
 // Traceability: NFR-1 | UML: NoteManager.getNotes

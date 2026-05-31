@@ -14,6 +14,17 @@ Note::Note(UUID uuid, std::string title)
     if (uuid_.empty()) throw std::invalid_argument("UUID must not be empty");
 }
 
+// Traceability: FR-4 (refined) | UML: Note.Note
+Note::Note(UUID uuid, std::string title, std::time_t createdAt, std::time_t lastModifiedAt)
+    : uuid_(std::move(uuid))
+    , title_(std::move(title))
+    , createdAt_(createdAt)
+    , lastModifiedAt_(lastModifiedAt)
+    , history_(std::make_unique<VersionHistory>())
+{
+    if (uuid_.empty()) throw std::invalid_argument("UUID must not be empty");
+}
+
 // Traceability: FR-1 (refined) | UML: Note.getUUID
 const UUID& Note::getUUID() const { return uuid_; }
 

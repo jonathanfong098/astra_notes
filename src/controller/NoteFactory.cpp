@@ -1,7 +1,8 @@
-// Traceability: FR-1 (refined) | UML: NoteFactory
+// Traceability: FR-1 (refined), FR-4 (refined) | UML: NoteFactory
 #include "NoteFactory.h"
 #include "../model/TextNote.h"
 #include "../model/VoiceNote.h"
+#include "../model/SecureNote.h"
 
 #include <random>
 #include <sstream>
@@ -9,6 +10,7 @@
 #include <stdexcept>
 #include <algorithm>
 #include <cctype>
+#include <cstdint>
 
 namespace {
 
@@ -73,7 +75,33 @@ std::unique_ptr<Note> NoteFactory::create(const std::string& type,
     throw std::invalid_argument("Unrecognized note type: " + type);
 }
 
-// Traceability: FR-5 (refined stub) | UML: NoteFactory.reconstructRecord
-std::unique_ptr<Note> NoteFactory::reconstructRecord(const std::string&) const {
-    throw std::runtime_error("NoteFactory::reconstructRecord: not yet implemented");
+// Traceability: FR-4 (refined) | UML: NoteFactory.reconstructRecord
+std::unique_ptr<Note> NoteFactory::reconstructRecord(const nlohmann::json& record,
+                                                      EncryptionEngine* engine) const {
+    const std::string type        = record.at("type").get<std::string>();
+    const UUID        uuid        = record.at("uuid").get<std::string>();
+    const std::string title       = record.at("title").get<std::string>();
+    const std::time_t createdAt   = record.at("createdAt").get<std::time_t>();
+    const std::time_t modifiedAt  = record.at("lastModifiedAt").get<std::time_t>();
+
+    if (type == "text") {
+        const std::string body = record.value("body", "");
+        return std::make_unique<TextNote>(uuid, title, body, createdAt, modifiedAt);
+    }
+    if (type == "voice") {
+        const std::string audioPath = record.value("audioPath", "");
+        return std::make_unique<VoiceNote>(uuid, title, audioPath, createdAt, modifiedAt);
+    }
+    if (type == "secure") {
+        if (!engine) return nullptr; // skip SecureNote records when no engine available
+        const std::string hexCipher = record.value("ciphertext", "");
+        std::vector<std::byte> bytes;
+        for (size_t i = 0; i + 1 < hexCipher.size(); i += 2) {
+            auto val = static_cast<uint8_t>(std::stoul(hexCipher.substr(i, 2), nullptr, 16));
+            bytes.push_back(std::byte{val});
+        }
+        return std::make_unique<SecureNote>(uuid, title, std::move(bytes),
+                                            *engine, createdAt, modifiedAt);
+    }
+    throw std::invalid_argument("NoteFactory::reconstructRecord: unknown type: " + type);
 }

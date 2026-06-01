@@ -125,39 +125,41 @@ Do not implement any of the above until their designated step is approved.
 ## Current Implementation State
 
 This table is the authoritative record of what is done, stubbed, or not started.
-**Update this table whenever a build step completes.**
+**Last updated: Step 10 final audit (2026-05-31). All steps complete.**
 
 | Component | File(s) | Status | Notes |
 |---|---|---|---|
-| Note abstract base | `model/Note.h/.cpp` | ✅ Complete | UUID, title, createdAt timestamps, VersionHistory composition. Note: `lastModifiedAt_` field not yet added — added in Step 2. |
-| TextNote | `model/TextNote.h/.cpp` | ✅ Complete | body field, getBody/setBody |
-| VoiceNote | `model/VoiceNote.h/.cpp` | ⚠️ Stub | audioPath always empty; no audio handling |
-| SecureNote | `model/SecureNote.h/.cpp` | ⚠️ Stub | ciphertext_ is `vector<byte>`; no lock/unlock yet |
-| VersionHistory | `model/VersionHistory.h/.cpp` | ⚠️ Stub | entries_ always empty; addEntry not yet implemented |
+| Note abstract base | `model/Note.h/.cpp` | ✅ Complete | UUID, title, createdAt, lastModifiedAt, VersionHistory composition; reconstruction constructor; setTitle, refreshLastModified, non-const getVersionHistory |
+| TextNote | `model/TextNote.h/.cpp` | ✅ Complete | body field, getBody/setBody; reconstruction constructor |
+| VoiceNote | `model/VoiceNote.h/.cpp` | ⚠️ Stub | audioPath always empty; audio handling deferred; reconstruction constructor present |
+| SecureNote | `model/SecureNote.h/.cpp` | ✅ Complete | ciphertext_ is `vector<byte>`; lock/unlock with passphrase gate and buffer zeroing; getCiphertextMutable for delete zeroing; reconstruction constructor |
+| VersionHistory | `model/VersionHistory.h/.cpp` | ✅ Complete | addEntry() implemented; populated by NoteManager::editBody |
 | VersionEntry | `model/VersionEntry.h` | ✅ Complete | struct only; no behavior |
-| NoteFactory | `controller/NoteFactory.h/.cpp` | ✅ Complete | RFC 4122 v4 UUID, title validation, text/voice creation. reconstructRecord is a stub (throws). |
-| NoteManager | `controller/NoteManager.h/.cpp` | ✅ Complete | add, remove (void), findByUUID, searchByTitle (case-insensitive, fully implemented). Note: remove() returns void now; changes to Status in Step 3. |
-| StorageInterface | `storage/StorageInterface.h` | ✅ Complete | Pure abstract; saveNote + loadNotes |
-| FileStorage | *(not yet created)* | ❌ Not started | JSON round-trip, quarantine logic — Step 4 |
+| NoteFactory | `controller/NoteFactory.h/.cpp` | ✅ Complete | RFC 4122 v4 UUID; title validation (empty, whitespace, >255 chars); text/voice creation; reconstructRecord fully implemented for all three types |
+| NoteManager | `controller/NoteManager.h/.cpp` | ✅ Complete | add, remove (Status), findByUUID, searchByTitle (case-insensitive), editTitle, editBody (with VersionHistory), persistAll, loadAll, getNotes |
+| StorageInterface | `storage/StorageInterface.h` | ✅ Complete | Pure abstract; saveNote + saveAll (default loop) + loadNotes |
+| FileStorage | `storage/FileStorage.h/.cpp` | ✅ Complete | Atomic tmp-then-rename write; FR-4a missing file; FR-4b quarantine + per-record skip + UUID collision discard; uses NoteFactory::reconstructRecord |
 | EncryptionEngine | `encryption/EncryptionEngine.h` | ✅ Complete | Pure abstract; encrypt + decrypt |
-| AESEngine | *(not yet created)* | ❌ Not started | AES-256-GCM via OpenSSL libcrypto — Step 7 |
+| AESEngine | `encryption/AESEngine.h/.cpp` | ✅ Complete | AES-256-GCM via OpenSSL libcrypto; PBKDF2-SHA256 key derivation; SALT\|IV\|TAG\|CIPHERTEXT wire format; key and plaintext buffers zeroed |
 | CLIView | `view/CLIView.h/.cpp` | ✅ Complete | renderNoteList, renderNote, promptInput |
-| main.cpp | `src/main.cpp` | ✅ Complete | n/l/s/q menu; settings stub; uses NullStorage |
-| NullStorage | inline in `main.cpp` and `test/` | ✅ Complete | No-op StorageInterface for tests and dev |
+| main.cpp | `src/main.cpp` | ✅ Complete | FileStorage + AESEngine wired; loadAll on startup, persistAll on quit; [n]/[l]/[v]/[e]/[d]/[s]/[q] menu |
+| NullStorage | inline in `test/` only | ✅ Complete | No-op StorageInterface for unit tests; removed from main.cpp in Step 8 |
 
-### What the Tests Currently Cover
+### What the Tests Cover
 
-All tests are in `test/test_note_creation.cpp`.
+All 27 tests are in `test/test_note_creation.cpp`.
 
-| Test | Suite | Status |
+| Suite | Count | Requirements |
 |---|---|---|
-| `NoteCreation.HappyPath_TextNoteCreatedAndStored` | Note Creation | ✅ Passing |
-| `NoteCreation.EmptyTitle_ThrowsInvalidArgument` | Note Creation | ✅ Passing |
-| `NoteCreation.TwoNotesWithSameTitle_ReceiveDistinctUUIDs` | Note Creation | ✅ Passing |
-| `SearchByTitle.CaseInsensitive_UpperQueryMatchesLowerTitle` | Search | ✅ Passing |
-| `SearchByTitle.NoMatch_ReturnsEmptyVector` | Search | ✅ Passing |
+| NoteCreation (A1–A4) | 4 | FR-1, FR-1a |
+| SearchByTitle (D2, D3, D4) | 3 | FR-6 |
+| EditTextNote (A8–A10) | 3 | FR-2 |
+| DeleteNote (A11–A14) | 4 | FR-3, SPR-1 |
+| FileStorageTest (C1–C6, B6) | 7 | FR-4, FR-4a, FR-4b, SPR-1 |
+| VersionHistory (E1) | 1 | NFR-3 |
+| SecureNote (B1–B5) | 5 | FR-5, FR-5a, SPR-1, SPR-2 |
 
-**Total: 5/5 passing. This is the Step 0 baseline.**
+**Total: 27/27 passing.**
 
 ---
 

@@ -37,8 +37,11 @@ std::time_t Note::getCreatedAt() const { return createdAt_; }
 // Traceability: FR-2 (refined) | UML: Note.getLastModifiedAt
 std::time_t Note::getLastModifiedAt() const { return lastModifiedAt_; }
 
-// Traceability: NFR-3 (refined stub) | UML: Note.getVersionHistory
+// Traceability: NFR-3 (refined) | UML: Note.getVersionHistory
 const VersionHistory& Note::getVersionHistory() const { return *history_; }
+
+// Traceability: NFR-3 (refined) | UML: Note.getVersionHistory
+VersionHistory& Note::getVersionHistory() { return *history_; }
 
 // Traceability: FR-2 (refined) | UML: Note.setTitle
 void Note::setTitle(const std::string& title) { title_ = title; }

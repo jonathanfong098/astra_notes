@@ -1,7 +1,8 @@
-// Traceability: NFR-1, FR-1 (refined), FR-2 (refined), FR-3 (refined) | UML: NoteManager
+// Traceability: NFR-1, FR-1 (refined), FR-2 (refined), FR-3 (refined), NFR-3 | UML: NoteManager
 #include "NoteManager.h"
 #include "../model/TextNote.h"
 #include "../model/SecureNote.h"
+#include "../model/VersionEntry.h"
 #include <stdexcept>
 #include <algorithm>
 #include <cctype>
@@ -99,6 +100,8 @@ Status NoteManager::editBody(const UUID& uuid, const std::string& newBody) {
 
     textNote->setBody(newBody);
     textNote->refreshLastModified();
+    // Traceability: NFR-3 (refined) | UML: VersionHistory.addEntry
+    textNote->getVersionHistory().addEntry(VersionEntry{newBody, std::time(nullptr)});
     return Status::OK;
 }
 

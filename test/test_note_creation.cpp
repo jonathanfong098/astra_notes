@@ -402,6 +402,38 @@ TEST_F(FileStorageTest, PartiallyCorruptFile_LoadsValidRecords) {
 }
 
 // ---------------------------------------------------------------------------
+// Feature E — Version History (NFR-3)
+// ---------------------------------------------------------------------------
+
+// Traceability: NFR-3 (refined) | UML: VersionHistory.addEntry
+TEST(VersionHistory, EditBodyAppendsEntry) {
+    NoteFactory factory;
+    NullStorage storage;
+    NoteManager manager(factory, storage);
+
+    auto note = factory.create("text", "Version test");
+    const UUID uuid = note->getUUID();
+    manager.add(std::move(note));
+
+    // Two successive body edits should produce two history entries.
+    manager.editBody(uuid, "First body");
+    manager.editBody(uuid, "Second body");
+
+    const Note* n = manager.findByUUID(uuid);
+    ASSERT_NE(n, nullptr);
+    const auto& entries = n->getVersionHistory().getEntries();
+    ASSERT_EQ(entries.size(), 2u);
+    EXPECT_EQ(entries[0].snapshotBody, "First body");
+    EXPECT_EQ(entries[1].snapshotBody, "Second body");
+    EXPECT_NE(entries[0].timestamp, std::time_t{0});
+    EXPECT_NE(entries[1].timestamp, std::time_t{0});
+
+    // Title edits must NOT append history entries (body-only behaviour — NFR-3).
+    manager.editTitle(uuid, "New title");
+    EXPECT_EQ(n->getVersionHistory().getEntries().size(), 2u);
+}
+
+// ---------------------------------------------------------------------------
 // Feature B — SecureNote Passphrase Gate (FR-5, FR-5a, SPR-1, SPR-2)
 // All B-series tests use MockEncryptionEngine — no real crypto linked.
 // ---------------------------------------------------------------------------

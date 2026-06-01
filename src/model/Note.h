@@ -29,8 +29,12 @@ public:
     // Traceability: FR-2 (refined) | UML: Note.getLastModifiedAt
     std::time_t getLastModifiedAt() const;
 
-    // Traceability: NFR-3 (refined stub) | UML: Note.getVersionHistory
+    // Traceability: NFR-3 (refined) | UML: Note.getVersionHistory
     const VersionHistory& getVersionHistory() const;
+
+    // Non-const overload — allows NoteManager to append entries after body edits.
+    // Traceability: NFR-3 (refined) | UML: Note.getVersionHistory
+    VersionHistory& getVersionHistory();
 
     // Traceability: FR-1 (refined) | UML: Note.getType
     virtual std::string getType() const = 0;

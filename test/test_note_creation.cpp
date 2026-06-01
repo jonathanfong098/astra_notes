@@ -300,7 +300,6 @@ TEST_F(FileStorageTest, RoundTrip_NotePreservesAllFields) {
 
     storage.saveAll(manager.getNotes());
 
-    NoteManager manager2(factory, nullStorage);
     FileStorage storage2(tmpPath_, factory);
     auto loaded = storage2.loadNotes();
     ASSERT_EQ(loaded.size(), 1u);

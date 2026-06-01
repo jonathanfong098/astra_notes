@@ -45,7 +45,7 @@ public:
     // Decryption buffer is zeroed before returning whether success or failure (SPR-1).
     // Plaintext is a local variable only — never stored in any member (SPR-1).
     // Traceability: FR-5 (refined) | UML: SecureNote.unlock
-    std::variant<std::string, SecureNoteError> unlock(const std::string& passphrase);
+    std::variant<std::string, SecureNoteError> unlock(const std::string& passphrase) const;
 
 private:
     std::vector<std::byte> ciphertext_; // SPR-1: never std::string or char*

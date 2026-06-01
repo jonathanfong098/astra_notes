@@ -43,7 +43,7 @@ Status SecureNote::lock(const std::string& plaintext, const std::string& passphr
 }
 
 // Traceability: FR-5 (refined) | UML: SecureNote.unlock
-std::variant<std::string, SecureNoteError> SecureNote::unlock(const std::string& passphrase) {
+std::variant<std::string, SecureNoteError> SecureNote::unlock(const std::string& passphrase) const {
     // FR-5a: reject empty or short passphrase before calling engine (INVALID_INPUT).
     if (passphrase.size() < 8) return SecureNoteError::INVALID_INPUT;
 

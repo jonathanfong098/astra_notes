@@ -3,13 +3,13 @@
 #include "../model/TextNote.h"
 #include "../model/VoiceNote.h"
 #include "../model/SecureNote.h"
+#include "../util/StringUtils.h"
 
 #include <random>
 #include <sstream>
 #include <iomanip>
 #include <stdexcept>
 #include <algorithm>
-#include <cctype>
 #include <cstdint>
 
 namespace {
@@ -36,23 +36,12 @@ std::string generateUUID() {
     return oss.str();
 }
 
-// Trims leading and trailing ASCII whitespace from a string.
-std::string trim(const std::string& s) {
-    auto start = s.begin();
-    while (start != s.end() && std::isspace(static_cast<unsigned char>(*start)))
-        ++start;
-    auto end = s.end();
-    while (end != start && std::isspace(static_cast<unsigned char>(*(end - 1))))
-        --end;
-    return {start, end};
-}
-
 } // anonymous namespace
 
 // Traceability: FR-1 (refined) | UML: NoteFactory.create
 std::unique_ptr<Note> NoteFactory::create(const std::string& type,
                                            const std::string& title) const {
-    const std::string trimmedTitle = trim(title);
+    const std::string trimmedTitle = util::trim(title);
     if (trimmedTitle.empty())
         throw std::invalid_argument("Note title must not be empty");
     // Traceability: FR-1a (refined) | UML: NoteFactory.create

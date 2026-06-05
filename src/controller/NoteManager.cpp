@@ -3,25 +3,10 @@
 #include "../model/TextNote.h"
 #include "../model/SecureNote.h"
 #include "../model/VersionEntry.h"
+#include "../util/StringUtils.h"
 #include <stdexcept>
 #include <algorithm>
-#include <cctype>
 #include <iostream>
-
-namespace {
-
-// Trims leading and trailing ASCII whitespace.
-std::string trim(const std::string& s) {
-    auto start = s.begin();
-    while (start != s.end() && std::isspace(static_cast<unsigned char>(*start)))
-        ++start;
-    auto end = s.end();
-    while (end != start && std::isspace(static_cast<unsigned char>(*(end - 1))))
-        --end;
-    return {start, end};
-}
-
-} // anonymous namespace
 
 // Traceability: NFR-1 | UML: NoteManager.NoteManager
 NoteManager::NoteManager(NoteFactory& factory, StorageInterface& storage)
@@ -81,7 +66,7 @@ Status NoteManager::editTitle(const UUID& uuid, const std::string& newTitle) {
     if (!textNote) return Status::INVALID_INPUT;
 
     // Validate before any mutation (atomic semantics — FR-2).
-    const std::string trimmed = trim(newTitle);
+    const std::string trimmed = util::trim(newTitle);
     if (trimmed.empty() || trimmed.size() > 255)
         return Status::INVALID_INPUT;
 

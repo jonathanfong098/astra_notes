@@ -14,31 +14,8 @@
 #include <variant>
 #include <filesystem>
 #include <cstdlib>
-#include <random>
-#include <sstream>
-#include <iomanip>
 
 namespace {
-
-// UUID v4 generator for SecureNote CLI creation.
-// NoteFactory::create("secure") is not yet wired; SecureNote needs a UUID here.
-// Traceability: FR-1 (refined) | UML: NoteFactory.create
-std::string makeUUID() {
-    static thread_local std::mt19937_64 rng{std::random_device{}()};
-    std::uniform_int_distribution<uint64_t> dist;
-    uint64_t hi = dist(rng);
-    uint64_t lo = dist(rng);
-    hi = (hi & 0xFFFFFFFFFFFF0FFFULL) | 0x0000000000004000ULL;
-    lo = (lo & 0x3FFFFFFFFFFFFFFFULL) | 0x8000000000000000ULL;
-    std::ostringstream oss;
-    oss << std::hex << std::setfill('0');
-    oss << std::setw(8)  << ((hi >> 32) & 0xFFFFFFFFULL) << '-';
-    oss << std::setw(4)  << ((hi >> 16) & 0xFFFFULL)     << '-';
-    oss << std::setw(4)  << (hi         & 0xFFFFULL)      << '-';
-    oss << std::setw(4)  << ((lo >> 48) & 0xFFFFULL)      << '-';
-    oss << std::setw(12) << (lo         & 0x0000FFFFFFFFFFFFULL);
-    return oss.str();
-}
 
 // Resolves ~/.astranotes/notes.json, creating the directory if needed (FR-4a).
 // Traceability: FR-4 (refined) | UML: FileStorage
@@ -91,7 +68,8 @@ int main() {
                     const std::string body = view.promptInput("Content: ");
                     const std::string pass = view.promptInput("Passphrase (min 8 chars): ");
                     try {
-                        auto note = std::make_unique<SecureNote>(makeUUID(), title, engine);
+                        // Traceability: FR-1 (refined) | UML: NoteFactory.generateUUID
+                    auto note = std::make_unique<SecureNote>(factory.generateUUID(), title, engine);
                         if (note->lock(body, pass) != Status::OK) {
                             std::cout << "Error: passphrase must be at least 8 characters.\n";
                         } else {

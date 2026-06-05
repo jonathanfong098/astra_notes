@@ -12,17 +12,14 @@
 #include <algorithm>
 #include <cstdint>
 
-namespace {
-
-// Generates a UUID v4-style string (8-4-4-4-12 hex), pseudo-random.
-// Uses thread_local engine to avoid repeated seeding overhead.
-std::string generateUUID() {
+// Traceability: FR-1 (refined) | UML: NoteFactory.generateUUID
+std::string NoteFactory::generateUUID() const {
     static thread_local std::mt19937_64 rng{std::random_device{}()};
     std::uniform_int_distribution<uint64_t> dist;
     uint64_t hi = dist(rng);
     uint64_t lo = dist(rng);
 
-    // Set version bits (4) and variant bits (10xx)
+    // Set version bits (4) and variant bits (10xx) per RFC 4122 v4.
     hi = (hi & 0xFFFFFFFFFFFF0FFFULL) | 0x0000000000004000ULL;
     lo = (lo & 0x3FFFFFFFFFFFFFFFULL) | 0x8000000000000000ULL;
 
@@ -36,8 +33,6 @@ std::string generateUUID() {
     return oss.str();
 }
 
-} // anonymous namespace
-
 // Traceability: FR-1 (refined) | UML: NoteFactory.create
 std::unique_ptr<Note> NoteFactory::create(const std::string& type,
                                            const std::string& title) const {
@@ -48,7 +43,7 @@ std::unique_ptr<Note> NoteFactory::create(const std::string& type,
     if (trimmedTitle.size() > 255)
         throw std::invalid_argument("Note title must not exceed 255 characters");
 
-    const UUID uuid = generateUUID();
+    const UUID uuid = generateUUID(); // calls NoteFactory::generateUUID()
 
     if (type == "text")
         return std::make_unique<TextNote>(uuid, trimmedTitle);

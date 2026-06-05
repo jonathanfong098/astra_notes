@@ -81,18 +81,26 @@ int main() {
                     std::cout << "Error: " << e.what() << '\n';
                 }
             } else if (type == "secure") {
-                const std::string body = view.promptInput("Content: ");
-                const std::string pass = view.promptInput("Passphrase (min 8 chars): ");
-                try {
-                    auto note = std::make_unique<SecureNote>(makeUUID(), title, engine);
-                    if (note->lock(body, pass) != Status::OK) {
-                        std::cout << "Error: passphrase must be at least 8 characters.\n";
-                    } else {
-                        manager.add(std::move(note));
-                        std::cout << "Secure note created and locked.\n";
+                // Traceability: FR-1a (refined) | UML: NoteFactory.create
+                // CLIView::promptInput already trims whitespace, so empty == whitespace-only.
+                if (title.empty()) {
+                    std::cout << "Error: note title must not be empty.\n";
+                } else if (title.size() > 255) {
+                    std::cout << "Error: note title must not exceed 255 characters.\n";
+                } else {
+                    const std::string body = view.promptInput("Content: ");
+                    const std::string pass = view.promptInput("Passphrase (min 8 chars): ");
+                    try {
+                        auto note = std::make_unique<SecureNote>(makeUUID(), title, engine);
+                        if (note->lock(body, pass) != Status::OK) {
+                            std::cout << "Error: passphrase must be at least 8 characters.\n";
+                        } else {
+                            manager.add(std::move(note));
+                            std::cout << "Secure note created and locked.\n";
+                        }
+                    } catch (const std::exception& e) {
+                        std::cout << "Error: " << e.what() << '\n';
                     }
-                } catch (const std::exception& e) {
-                    std::cout << "Error: " << e.what() << '\n';
                 }
             } else {
                 std::cout << "Unknown type. Use text, voice, or secure.\n";

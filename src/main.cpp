@@ -65,19 +65,25 @@ int main() {
                 } else if (title.size() > 255) {
                     std::cout << "Error: note title must not exceed 255 characters.\n";
                 } else {
-                    const std::string body = view.promptInput("Content: ");
+                    // Prompt passphrase before content so a short passphrase fails fast
+                    // without discarding the content the user already typed (FR-5).
                     const std::string pass = view.promptInput("Passphrase (min 8 chars): ");
-                    try {
-                        // Traceability: FR-1 (refined) | UML: NoteFactory.generateUUID
-                    auto note = std::make_unique<SecureNote>(factory.generateUUID(), title, engine);
-                        if (note->lock(body, pass) != Status::OK) {
-                            std::cout << "Error: passphrase must be at least 8 characters.\n";
-                        } else {
-                            manager.add(std::move(note));
-                            std::cout << "Secure note created and locked.\n";
+                    if (pass.size() < 8) {
+                        std::cout << "Error: passphrase must be at least 8 characters.\n";
+                    } else {
+                        const std::string body = view.promptInput("Content: ");
+                        try {
+                            // Traceability: FR-1 (refined) | UML: NoteFactory.generateUUID
+                            auto note = std::make_unique<SecureNote>(factory.generateUUID(), title, engine);
+                            if (note->lock(body, pass) != Status::OK) {
+                                std::cout << "Error: encryption failed.\n";
+                            } else {
+                                manager.add(std::move(note));
+                                std::cout << "Secure note created and locked.\n";
+                            }
+                        } catch (const std::exception& e) {
+                            std::cout << "Error: " << e.what() << '\n';
                         }
-                    } catch (const std::exception& e) {
-                        std::cout << "Error: " << e.what() << '\n';
                     }
                 }
             } else {

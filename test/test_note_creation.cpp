@@ -85,6 +85,25 @@ TEST(NoteCreation, TwoNotesWithSameTitle_ReceiveDistinctUUIDs) {
     EXPECT_NE(n1->getUUID(), n2->getUUID());
 }
 
+// Traceability: FR-1 (refined) | UML: NoteManager.add
+TEST(NoteCreation, AddDuplicateUUID_Throws) {
+    NoteFactory factory;
+    NullStorage storage;
+    NoteManager manager(factory, storage);
+
+    // Construct two TextNotes with the same UUID directly to force collision.
+    const UUID sharedUUID = "duplicate-uuid-test";
+    auto note1 = std::make_unique<TextNote>(sharedUUID, "First note");
+    auto note2 = std::make_unique<TextNote>(sharedUUID, "Second note");
+
+    manager.add(std::move(note1)); // first add must succeed
+
+    // Second add with same UUID must throw and leave collection unchanged.
+    EXPECT_THROW(manager.add(std::move(note2)), std::invalid_argument);
+    EXPECT_NE(manager.findByUUID(sharedUUID), nullptr); // original still present
+    EXPECT_EQ(manager.findByUUID(sharedUUID)->getTitle(), "First note");
+}
+
 // Traceability: FR-6 (refined) | UML: NoteManager.searchByTitle
 TEST(SearchByTitle, SubstringMatch_ReturnsMatchingOnly) {
     NoteFactory factory;

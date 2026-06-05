@@ -86,6 +86,33 @@ TEST(NoteCreation, TwoNotesWithSameTitle_ReceiveDistinctUUIDs) {
 }
 
 // Traceability: FR-6 (refined) | UML: NoteManager.searchByTitle
+TEST(SearchByTitle, SubstringMatch_ReturnsMatchingOnly) {
+    NoteFactory factory;
+    FailOnCallStorage storage;
+    NoteManager manager(factory, storage);
+
+    manager.add(factory.create("text", "Meeting notes"));
+    manager.add(factory.create("text", "Shopping list"));
+    manager.add(factory.create("text", "Meeting agenda"));
+    manager.add(factory.create("text", "Project ideas"));
+
+    const auto results = manager.searchByTitle("meeting");
+
+    // Exactly two notes match; the other two must be excluded.
+    ASSERT_EQ(results.size(), 2u);
+    for (const auto& title : results) {
+        const std::string lower = [&]{
+            std::string s = title;
+            std::transform(s.begin(), s.end(), s.begin(),
+                [](unsigned char c){ return std::tolower(c); });
+            return s;
+        }();
+        EXPECT_NE(lower.find("meeting"), std::string::npos)
+            << "Unexpected title in results: " << title;
+    }
+}
+
+// Traceability: FR-6 (refined) | UML: NoteManager.searchByTitle
 TEST(SearchByTitle, CaseInsensitive_UpperQueryMatchesLowerTitle) {
     NoteFactory factory;
     NullStorage storage;

@@ -70,10 +70,26 @@ void FileStorage::saveAll(const std::unordered_map<UUID, std::unique_ptr<Note>>&
     const std::string tmpPath = filePath_ + ".tmp";
     {
         std::ofstream out(tmpPath);
+        if (!out.is_open()) {
+            std::cerr << "FileStorage: failed to open tmp file for writing: "
+                      << tmpPath << '\n';
+            return; // do not rename — leave existing notes.json intact
+        }
         out << arr.dump(2);
+        out.flush();
+        if (!out.good()) {
+            std::cerr << "FileStorage: write failed (disk full?): " << tmpPath << '\n';
+            out.close();
+            std::remove(tmpPath.c_str()); // clean up the partial tmp file
+            return; // do not rename — leave existing notes.json intact
+        }
     }
-    // Atomic rename: if the write succeeded, replace the destination (FR-4).
-    std::rename(tmpPath.c_str(), filePath_.c_str());
+    // Atomic rename: write confirmed good, now replace destination (FR-4).
+    if (std::rename(tmpPath.c_str(), filePath_.c_str()) != 0) {
+        std::cerr << "FileStorage: rename failed: " << tmpPath
+                  << " -> " << filePath_ << '\n';
+        std::remove(tmpPath.c_str());
+    }
 }
 
 // Traceability: FR-4 (refined), FR-4a (refined), FR-4b (refined) | UML: FileStorage.loadNotes

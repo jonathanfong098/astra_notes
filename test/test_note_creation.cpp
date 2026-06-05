@@ -124,6 +124,20 @@ TEST(SearchByTitle, EmptyQuery_ReturnsAllNotes) {
     EXPECT_EQ(results.size(), 3u);
 }
 
+// Traceability: NFR-2 | UML: NoteManager.findByUUID
+TEST(NoteManager, FindByUUIDReturnsNullForMissingUUID) {
+    NoteFactory factory;
+    NullStorage storage;
+    NoteManager manager(factory, storage);
+
+    // findByUUID on an empty manager must return nullptr without throwing.
+    EXPECT_EQ(manager.findByUUID("nonexistent-uuid"), nullptr);
+
+    // Also valid after notes have been added — missing UUID still returns nullptr.
+    manager.add(factory.create("text", "Some note"));
+    EXPECT_EQ(manager.findByUUID("does-not-exist"), nullptr);
+}
+
 // Traceability: FR-1a (refined) | UML: NoteFactory.create
 TEST(NoteCreation, RejectsTitleExceeding255Chars) {
     NoteFactory factory;

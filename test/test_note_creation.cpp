@@ -165,6 +165,21 @@ TEST(NoteManager, FindByUUIDReturnsNullForMissingUUID) {
     EXPECT_EQ(manager.findByUUID("does-not-exist"), nullptr);
 }
 
+// Traceability: FR-6 (refined) | UML: NoteManager.searchByTitle
+TEST(SearchByTitle, NoFileIODuringSearch) {
+    NoteFactory factory;
+    FailOnCallStorage storage; // saveNote() and loadNotes() call FAIL() if invoked
+    NoteManager manager(factory, storage);
+
+    manager.add(factory.create("text", "Alpha notes"));
+    manager.add(factory.create("text", "Beta reminder"));
+
+    // Non-empty query search must not touch storage at all.
+    // If it does, FailOnCallStorage will immediately fail this test.
+    const auto results = manager.searchByTitle("alpha");
+    EXPECT_EQ(results.size(), 1u);
+}
+
 // Traceability: FR-1a (refined) | UML: NoteFactory.create
 TEST(NoteCreation, RejectsTitleExceeding255Chars) {
     NoteFactory factory;

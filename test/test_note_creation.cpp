@@ -258,6 +258,28 @@ TEST(EditTextNote, MissingUUID_ReturnsNotFound) {
     EXPECT_EQ(s, Status::NOT_FOUND);
 }
 
+// Traceability: FR-2 (refined) | UML: NoteManager.editTitle, NoteManager.editBody
+TEST(EditTextNote, EditVoiceNote_ReturnsInvalidInput) {
+    NoteFactory factory;
+    NullStorage storage;
+    NoteManager manager(factory, storage);
+
+    auto note = factory.create("voice", "My recording");
+    const UUID uuid = note->getUUID();
+    manager.add(std::move(note));
+
+    // editTitle on a VoiceNote must return INVALID_INPUT — TextNote only.
+    EXPECT_EQ(manager.editTitle(uuid, "New title"), Status::INVALID_INPUT);
+
+    // editBody on a VoiceNote must return INVALID_INPUT — TextNote only.
+    EXPECT_EQ(manager.editBody(uuid, "New body"), Status::INVALID_INPUT);
+
+    // VoiceNote must be completely unchanged after both failed edits.
+    const Note* unchanged = manager.findByUUID(uuid);
+    ASSERT_NE(unchanged, nullptr);
+    EXPECT_EQ(unchanged->getTitle(), "My recording");
+}
+
 // Traceability: FR-3 (refined) | UML: NoteManager.remove
 TEST(DeleteNote, RemovesNoteFromCollection) {
     NoteFactory factory;

@@ -121,16 +121,33 @@ int main() {
         } else if (cmd == "e") {
             const std::string uuid  = view.promptInput("UUID: ");
             const std::string field = view.promptInput("Field (title/body): ");
-            const std::string value = view.promptInput("New value: ");
 
-            Status s;
-            if      (field == "title") s = manager.editTitle(uuid, value);
-            else if (field == "body")  s = manager.editBody(uuid, value);
-            else { std::cout << "Unknown field. Use title or body.\n"; continue; }
+            if (field != "title" && field != "body") {
+                std::cout << "Unknown field. Use title or body.\n";
+                continue;
+            }
 
-            if      (s == Status::OK)            std::cout << "Note updated.\n";
-            else if (s == Status::NOT_FOUND)     std::cout << "Error: note not found.\n";
-            else if (s == Status::INVALID_INPUT) std::cout << "Error: invalid input.\n";
+            const Note* note = manager.findByUUID(uuid);
+            if (!note) { std::cout << "Error: note not found.\n"; continue; }
+
+            // SecureNote body edit: prompt passphrase and re-lock with new content.
+            if (field == "body" && note->getType() == "secure") {
+                const std::string pass    = view.promptInput("Passphrase: ");
+                const std::string newBody = view.promptInput("New content: ");
+                const Status s = manager.relockSecureBody(uuid, newBody, pass);
+                if      (s == Status::OK)            std::cout << "Secure note updated.\n";
+                else if (s == Status::NOT_FOUND)     std::cout << "Error: note not found.\n";
+                else if (s == Status::INVALID_INPUT) std::cout << "Error: passphrase must be at least 8 characters.\n";
+            } else {
+                const std::string value = view.promptInput("New value: ");
+                Status s;
+                if (field == "title") s = manager.editTitle(uuid, value);
+                else                  s = manager.editBody(uuid, value);
+
+                if      (s == Status::OK)            std::cout << "Note updated.\n";
+                else if (s == Status::NOT_FOUND)     std::cout << "Error: note not found.\n";
+                else if (s == Status::INVALID_INPUT) std::cout << "Error: invalid input.\n";
+            }
 
         // ── [d] Delete note ─────────────────────────────────────────────
         } else if (cmd == "d") {

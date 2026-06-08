@@ -35,6 +35,11 @@ public:
     // Traceability: FR-2 (refined) | UML: NoteManager.editBody
     Status editBody(const UUID& uuid, const std::string& newBody);
 
+    // Re-encrypts a SecureNote with newBody using the given passphrase.
+    // Returns NOT_FOUND if UUID absent, INVALID_INPUT if not a SecureNote or passphrase < 8 chars.
+    // Traceability: FR-5 (refined) | UML: NoteManager.relockSecureBody
+    Status relockSecureBody(const UUID& uuid, const std::string& newBody, const std::string& passphrase);
+
     // Returns a const pointer to the note, or nullptr if UUID not found.
     // Traceability: FR-1 (refined) | UML: NoteManager.findByUUID
     const Note* findByUUID(const UUID& uuid) const;

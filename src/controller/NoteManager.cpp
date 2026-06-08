@@ -90,6 +90,22 @@ Status NoteManager::editBody(const UUID& uuid, const std::string& newBody) {
     return Status::OK;
 }
 
+// Traceability: FR-5 (refined) | UML: NoteManager.relockSecureBody
+Status NoteManager::relockSecureBody(const UUID& uuid, const std::string& newBody,
+                                     const std::string& passphrase) {
+    auto it = notes_.find(uuid);
+    if (it == notes_.end()) return Status::NOT_FOUND;
+
+    auto* sn = dynamic_cast<SecureNote*>(it->second.get());
+    if (!sn) return Status::INVALID_INPUT;
+
+    const Status s = sn->lock(newBody, passphrase);
+    if (s != Status::OK) return s;
+
+    sn->refreshLastModified();
+    return Status::OK;
+}
+
 // Traceability: FR-4 (refined) | UML: NoteManager.persistAll
 void NoteManager::persistAll() const {
     storage_.saveAll(notes_);

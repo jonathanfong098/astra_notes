@@ -44,10 +44,10 @@ public:
     // Traceability: FR-1 (refined) | UML: NoteManager.findByUUID
     const Note* findByUUID(const UUID& uuid) const;
 
-    // Returns titles of all notes whose title contains query (case-insensitive).
-    // STUB: returns empty vector this sprint.
-    // Traceability: FR-6 (refined stub) | UML: NoteManager.searchByTitle
-    std::vector<std::string> searchByTitle(const std::string& query) const;
+    // Returns {UUID, title} pairs for all notes whose title contains query (case-insensitive).
+    // Empty query returns all notes. No file I/O occurs.
+    // Traceability: FR-6 (refined) | UML: NoteManager.searchByTitle
+    std::vector<std::pair<UUID, std::string>> searchByTitle(const std::string& query) const;
 
     // Persists all notes via storage_. STUB: no-op this sprint.
     // Traceability: FR-5 (refined stub) | UML: NoteManager.persistAll

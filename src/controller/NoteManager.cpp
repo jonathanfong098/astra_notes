@@ -42,17 +42,17 @@ const Note* NoteManager::findByUUID(const UUID& uuid) const {
 }
 
 // Traceability: FR-6 (refined) | UML: NoteManager.searchByTitle
-std::vector<std::string> NoteManager::searchByTitle(const std::string& query) const {
+std::vector<std::pair<UUID, std::string>> NoteManager::searchByTitle(const std::string& query) const {
     auto toLower = [](std::string s) {
         std::transform(s.begin(), s.end(), s.begin(),
             [](unsigned char c){ return std::tolower(c); });
         return s;
     };
     const std::string lowerQuery = toLower(query);
-    std::vector<std::string> results;
+    std::vector<std::pair<UUID, std::string>> results;
     for (const auto& [uuid, note] : notes_) {
         if (toLower(note->getTitle()).find(lowerQuery) != std::string::npos)
-            results.push_back(note->getTitle());
+            results.emplace_back(uuid, note->getTitle());
     }
     return results;
 }

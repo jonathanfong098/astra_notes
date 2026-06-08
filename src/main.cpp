@@ -39,7 +39,7 @@ int main() {
     manager.loadAll(); // FR-4: deserialise notes from disk on startup
 
     std::cout << "AstraNotes v0.2  [" << storagePath << "]\n"
-              << "Commands: [n]ew  [l]ist  [v]iew  [e]dit  [d]elete  [s]ettings  [h]elp  [q]uit\n\n";
+              << "Commands: [n]ew  [l]ist  [v]iew  [e]dit  [d]elete  [/]search  [s]ettings  [h]elp  [q]uit\n\n";
 
     std::string cmd;
     while (true) {
@@ -163,6 +163,14 @@ int main() {
                 std::cout << "Delete cancelled.\n";
             }
 
+        // ── [/] Search notes ────────────────────────────────────────────
+        } else if (cmd == "/") {
+            const std::string query = view.promptInput("Search titles: ");
+            const auto results = manager.searchByTitle(query);
+            if (results.empty()) std::cout << "(no matches)\n";
+            else for (const auto& [uuid, title] : results)
+                std::cout << "  " << uuid << "  " << title << '\n';
+
         // ── [h] Help ────────────────────────────────────────────────────
         } else if (cmd == "h" || cmd == "help") {
             std::cout
@@ -172,6 +180,7 @@ int main() {
                 << "  v  view note   — prompts for UUID; unlocks SecureNote with passphrase\n"
                 << "  e  edit note   — prompts for UUID, field (title/body), new value\n"
                 << "  d  delete note — prompts for UUID and confirmation\n"
+                << "  /  search      — case-insensitive title substring search\n"
                 << "  s  settings    — not yet implemented\n"
                 << "  h  help        — show this message\n"
                 << "  q  quit        — saves all notes and exits\n";

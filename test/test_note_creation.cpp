@@ -119,13 +119,14 @@ TEST(SearchByTitle, SubstringMatch_ReturnsMatchingOnly) {
 
     // Exactly two notes match; the other two must be excluded.
     ASSERT_EQ(results.size(), 2u);
-    for (const auto& title : results) {
+    for (const auto& [uuid, title] : results) {
         const std::string lower = [&]{
             std::string s = title;
             std::transform(s.begin(), s.end(), s.begin(),
                 [](unsigned char c){ return std::tolower(c); });
             return s;
         }();
+        EXPECT_FALSE(uuid.empty()) << "Result must carry a UUID";
         EXPECT_NE(lower.find("meeting"), std::string::npos)
             << "Unexpected title in results: " << title;
     }
@@ -142,7 +143,8 @@ TEST(SearchByTitle, CaseInsensitive_UpperQueryMatchesLowerTitle) {
 
     const auto results = manager.searchByTitle("ALPHA");
     ASSERT_EQ(results.size(), 1u);
-    EXPECT_EQ(results[0], "alpha notes");
+    EXPECT_EQ(results[0].second, "alpha notes");
+    EXPECT_FALSE(results[0].first.empty());
 }
 
 // Traceability: FR-6 (refined) | UML: NoteManager.searchByTitle

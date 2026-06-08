@@ -1,6 +1,7 @@
 // Traceability: NFR-1, FR-1 (refined), FR-2 (refined), FR-3 (refined), NFR-3 | UML: NoteManager
 #include "NoteManager.h"
 #include "../model/TextNote.h"
+#include "../model/VoiceNote.h"
 #include "../model/SecureNote.h"
 #include "../model/VersionEntry.h"
 #include "../util/StringUtils.h"
@@ -62,16 +63,16 @@ Status NoteManager::editTitle(const UUID& uuid, const std::string& newTitle) {
     auto it = notes_.find(uuid);
     if (it == notes_.end()) return Status::NOT_FOUND;
 
-    auto* textNote = dynamic_cast<TextNote*>(it->second.get());
-    if (!textNote) return Status::INVALID_INPUT;
+    // SecureNote title editing is not permitted (title is the only unencrypted identifier).
+    if (dynamic_cast<const SecureNote*>(it->second.get())) return Status::INVALID_INPUT;
 
     // Validate before any mutation (atomic semantics — FR-2).
     const std::string trimmed = util::trim(newTitle);
     if (trimmed.empty() || trimmed.size() > 255)
         return Status::INVALID_INPUT;
 
-    textNote->setTitle(trimmed);
-    textNote->refreshLastModified();
+    it->second->setTitle(trimmed);
+    it->second->refreshLastModified();
     return Status::OK;
 }
 
@@ -80,14 +81,21 @@ Status NoteManager::editBody(const UUID& uuid, const std::string& newBody) {
     auto it = notes_.find(uuid);
     if (it == notes_.end()) return Status::NOT_FOUND;
 
-    auto* textNote = dynamic_cast<TextNote*>(it->second.get());
-    if (!textNote) return Status::INVALID_INPUT;
+    if (auto* textNote = dynamic_cast<TextNote*>(it->second.get())) {
+        textNote->setBody(newBody);
+        textNote->refreshLastModified();
+        // Traceability: NFR-3 (refined) | UML: VersionHistory.addEntry
+        textNote->getVersionHistory().addEntry(VersionEntry{newBody, std::time(nullptr)});
+        return Status::OK;
+    }
 
-    textNote->setBody(newBody);
-    textNote->refreshLastModified();
-    // Traceability: NFR-3 (refined) | UML: VersionHistory.addEntry
-    textNote->getVersionHistory().addEntry(VersionEntry{newBody, std::time(nullptr)});
-    return Status::OK;
+    if (auto* voiceNote = dynamic_cast<VoiceNote*>(it->second.get())) {
+        voiceNote->setAudioPath(newBody);
+        voiceNote->refreshLastModified();
+        return Status::OK;
+    }
+
+    return Status::INVALID_INPUT;
 }
 
 // Traceability: FR-5 (refined) | UML: NoteManager.relockSecureBody

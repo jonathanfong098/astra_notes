@@ -15,5 +15,11 @@ VoiceNote::VoiceNote(UUID uuid, std::string title, std::string audioPath,
 // Traceability: FR-3 (refined stub) | UML: VoiceNote.getType
 std::string VoiceNote::getType() const { return "voice"; }
 
-// Traceability: FR-3 (refined stub) | UML: VoiceNote.getAudioPath
+// Traceability: FR-3 (refined) | UML: VoiceNote.getAudioPath
 const std::string& VoiceNote::getAudioPath() const { return audioPath_; }
+
+// Traceability: FR-2 (refined) | UML: VoiceNote.setAudioPath
+void VoiceNote::setAudioPath(std::string path) { audioPath_ = std::move(path); }
+
+// Traceability: FR-2 (refined) | UML: VoiceNote.getBody
+std::string VoiceNote::getBody() const { return audioPath_; }

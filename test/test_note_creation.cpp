@@ -261,7 +261,7 @@ TEST(EditTextNote, MissingUUID_ReturnsNotFound) {
 }
 
 // Traceability: FR-2 (refined) | UML: NoteManager.editTitle, NoteManager.editBody
-TEST(EditTextNote, EditVoiceNote_ReturnsInvalidInput) {
+TEST(EditTextNote, EditVoiceNote_TitleAndAudioPathEditable) {
     NoteFactory factory;
     NullStorage storage;
     NoteManager manager(factory, storage);
@@ -270,16 +270,16 @@ TEST(EditTextNote, EditVoiceNote_ReturnsInvalidInput) {
     const UUID uuid = note->getUUID();
     manager.add(std::move(note));
 
-    // editTitle on a VoiceNote must return INVALID_INPUT — TextNote only.
-    EXPECT_EQ(manager.editTitle(uuid, "New title"), Status::INVALID_INPUT);
+    // editTitle on a VoiceNote must succeed.
+    EXPECT_EQ(manager.editTitle(uuid, "Updated title"), Status::OK);
 
-    // editBody on a VoiceNote must return INVALID_INPUT — TextNote only.
-    EXPECT_EQ(manager.editBody(uuid, "New body"), Status::INVALID_INPUT);
+    // editBody on a VoiceNote must succeed (sets audioPath).
+    EXPECT_EQ(manager.editBody(uuid, "/audio/file.mp3"), Status::OK);
 
-    // VoiceNote must be completely unchanged after both failed edits.
-    const Note* unchanged = manager.findByUUID(uuid);
-    ASSERT_NE(unchanged, nullptr);
-    EXPECT_EQ(unchanged->getTitle(), "My recording");
+    const Note* updated = manager.findByUUID(uuid);
+    ASSERT_NE(updated, nullptr);
+    EXPECT_EQ(updated->getTitle(), "Updated title");
+    EXPECT_EQ(updated->getBody(), "/audio/file.mp3");
 }
 
 // Traceability: FR-3 (refined) | UML: NoteManager.remove

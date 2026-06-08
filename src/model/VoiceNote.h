@@ -16,9 +16,17 @@ public:
     // Traceability: FR-3 (refined stub) | UML: VoiceNote.getType
     std::string getType() const override;
 
-    // Returns audio file path; always empty this sprint.
-    // Traceability: FR-3 (refined stub) | UML: VoiceNote.getAudioPath
+    // Returns audio file path (empty until set).
+    // Traceability: FR-3 (refined) | UML: VoiceNote.getAudioPath
     const std::string& getAudioPath() const;
+
+    // Sets the audio file path.
+    // Traceability: FR-2 (refined) | UML: VoiceNote.setAudioPath
+    void setAudioPath(std::string path);
+
+    // Returns audioPath_ so CLIView::renderNote() can display it via Note::getBody().
+    // Traceability: FR-2 (refined) | UML: VoiceNote.getBody
+    std::string getBody() const override;
 
 private:
     std::string audioPath_; // always empty this sprint — FR-3 deferred

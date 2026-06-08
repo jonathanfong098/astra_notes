@@ -24,14 +24,14 @@ public:
     // Traceability: FR-3 (refined) | UML: NoteManager.remove
     Status remove(const UUID& uuid);
 
-    // Updates the title of an existing TextNote. Validates per FR-1a (non-empty, ≤255 chars).
-    // Returns NOT_FOUND if UUID absent, INVALID_INPUT if not a TextNote or title invalid.
+    // Updates the title of a TextNote or VoiceNote. Validates per FR-1a (non-empty, ≤255 chars).
+    // Returns NOT_FOUND if UUID absent, INVALID_INPUT if SecureNote or title invalid.
     // Atomic: note is unchanged if validation fails.
     // Traceability: FR-2 (refined) | UML: NoteManager.editTitle
     Status editTitle(const UUID& uuid, const std::string& newTitle);
 
-    // Updates the body of an existing TextNote.
-    // Returns NOT_FOUND if UUID absent, INVALID_INPUT if not a TextNote.
+    // Updates the body of a TextNote or the audioPath of a VoiceNote.
+    // Returns NOT_FOUND if UUID absent, INVALID_INPUT if SecureNote.
     // Traceability: FR-2 (refined) | UML: NoteManager.editBody
     Status editBody(const UUID& uuid, const std::string& newBody);
 

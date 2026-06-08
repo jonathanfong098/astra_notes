@@ -6,6 +6,7 @@
 #include "storage/FileStorage.h"
 #include "encryption/AESEngine.h"
 #include "model/Note.h"
+#include "model/TextNote.h"
 #include "model/SecureNote.h"
 #include "view/CLIView.h"
 
@@ -50,9 +51,20 @@ int main() {
             const std::string type  = view.promptInput("Type (text/voice/secure): ");
             const std::string title = view.promptInput("Title: ");
 
-            if (type == "text" || type == "voice") {
+            if (type == "text") {
+                const std::string body = view.promptInput("Body (optional, press Enter to skip): ");
                 try {
-                    manager.add(factory.create(type, title));
+                    auto note = factory.create("text", title);
+                    static_cast<TextNote*>(note.get())->setBody(body);
+                    manager.add(std::move(note));
+                    manager.persistAll();
+                    std::cout << "Note created.\n";
+                } catch (const std::exception& e) {
+                    std::cout << "Error: " << e.what() << '\n';
+                }
+            } else if (type == "voice") {
+                try {
+                    manager.add(factory.create("voice", title));
                     manager.persistAll();
                     std::cout << "Note created.\n";
                 } catch (const std::exception& e) {
@@ -175,7 +187,7 @@ int main() {
         } else if (cmd == "h" || cmd == "help") {
             std::cout
                 << "Commands:\n"
-                << "  n  new note    — prompts for type (text/voice/secure) and title\n"
+                << "  n  new note    — prompts for type (text/voice/secure), title, and body if text\n"
                 << "  l  list notes  — shows all notes (UUID, type, title)\n"
                 << "  v  view note   — prompts for UUID; unlocks SecureNote with passphrase\n"
                 << "  e  edit note   — prompts for UUID, field (title/body), new value\n"

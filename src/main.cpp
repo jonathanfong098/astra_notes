@@ -53,6 +53,7 @@ int main() {
             if (type == "text" || type == "voice") {
                 try {
                     manager.add(factory.create(type, title));
+                    manager.persistAll();
                     std::cout << "Note created.\n";
                 } catch (const std::exception& e) {
                     std::cout << "Error: " << e.what() << '\n';
@@ -79,6 +80,7 @@ int main() {
                                 std::cout << "Error: encryption failed.\n";
                             } else {
                                 manager.add(std::move(note));
+                                manager.persistAll();
                                 std::cout << "Secure note created and locked.\n";
                             }
                         } catch (const std::exception& e) {
@@ -135,7 +137,7 @@ int main() {
                 const std::string pass    = view.promptInput("Passphrase: ");
                 const std::string newBody = view.promptInput("New content: ");
                 const Status s = manager.relockSecureBody(uuid, newBody, pass);
-                if      (s == Status::OK)            std::cout << "Secure note updated.\n";
+                if      (s == Status::OK)            { manager.persistAll(); std::cout << "Secure note updated.\n"; }
                 else if (s == Status::NOT_FOUND)     std::cout << "Error: note not found.\n";
                 else if (s == Status::INVALID_INPUT) std::cout << "Error: passphrase must be at least 8 characters.\n";
             } else {
@@ -144,7 +146,7 @@ int main() {
                 if (field == "title") s = manager.editTitle(uuid, value);
                 else                  s = manager.editBody(uuid, value);
 
-                if      (s == Status::OK)            std::cout << "Note updated.\n";
+                if      (s == Status::OK)            { manager.persistAll(); std::cout << "Note updated.\n"; }
                 else if (s == Status::NOT_FOUND)     std::cout << "Error: note not found.\n";
                 else if (s == Status::INVALID_INPUT) std::cout << "Error: invalid input.\n";
             }
@@ -155,7 +157,7 @@ int main() {
             const std::string confirm = view.promptInput("Confirm delete? (yes/no): ");
             if (confirm == "yes") {
                 const Status s = manager.remove(uuid);
-                if      (s == Status::OK)        std::cout << "Note deleted.\n";
+                if      (s == Status::OK)        { manager.persistAll(); std::cout << "Note deleted.\n"; }
                 else if (s == Status::NOT_FOUND) std::cout << "Error: note not found.\n";
             } else {
                 std::cout << "Delete cancelled.\n";

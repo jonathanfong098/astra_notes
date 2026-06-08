@@ -5,7 +5,7 @@
 
 ### All Tests Pass
 - [x] `cmake --build build` exits 0.
-- [x] `ctest --test-dir build --output-on-failure` exits 0 — **27/27 tests pass**.
+- [x] `ctest --test-dir build --output-on-failure` exits 0 — **33/33 tests pass**.
 
 ### Grep Checks (Step 10)
 - [x] No raw `new`/`delete` in `src/` — all grep hits confirmed as comments or string literals.
@@ -28,7 +28,7 @@
 ### Feature Completeness
 - [x] FR-1 / US-01 — Note Creation (TextNote, VoiceNote, SecureNote stubs via NoteFactory).
 - [x] FR-1a — Title validation: empty, whitespace-only, and >255-char titles rejected.
-- [x] FR-2 / US-02 — Edit TextNote title and body with atomic semantics and timestamp update.
+- [x] FR-2 / US-02 — Edit TextNote and VoiceNote title and body with atomic semantics and timestamp update. SecureNote body editing via passphrase re-lock.
 - [x] FR-3 / US-03 — Delete note by UUID; SecureNote ciphertext zeroed before deallocation.
 - [x] FR-4 / US-04 — JSON persistence (atomic write via tmp-then-rename); FR-4a missing file; FR-4b quarantine and per-record skip.
 - [x] FR-5 / US-05 — SecureNote passphrase gate: lock() and unlock() with plaintext zeroing.
@@ -50,5 +50,13 @@
 ### CLI Wiring
 - [x] `NullStorage` removed from `src/main.cpp` — replaced with `FileStorage` + `AESEngine`.
 - [x] Notes load from `~/.astranotes/notes.json` on startup.
-- [x] Notes save to `~/.astranotes/notes.json` on quit.
-- [x] All menu commands wired: [n] new, [l] list, [v] view, [e] edit, [d] delete, [s] settings stub, [q] quit.
+- [x] Notes persist after every successful create, edit, and delete (not only on quit).
+- [x] All menu commands wired: [n] new, [l] list, [v] view, [e] edit, [d] delete, [/] search, [h] help, [s] settings stub, [q] quit.
+
+### Post-Audit Additions (2026-06-07)
+- [x] TextNote body displayed in `renderNote()` via virtual `Note::getBody()` — previously invisible after editing.
+- [x] VoiceNote title and audioPath editable via `[e]` command.
+- [x] SecureNote title editable; body edit requires passphrase re-lock via `NoteManager::relockSecureBody()`.
+- [x] Case-insensitive search wired to `[/]` CLI command; results show UUID + title pairs.
+- [x] `searchByTitle()` returns `vector<pair<UUID,string>>` — actionable under duplicate titles.
+- [x] Additional tests added after audit: `AddDuplicateUUID_Throws`, `SubstringMatch_ReturnsMatchingOnly`, `NoFileIODuringSearch`, `FindByUUIDReturnsNullForMissingUUID`, `EditVoiceNote_TitleAndAudioPathEditable`, `SecureNoteCiphertextMutableZeroingWorks` — total 33/33.

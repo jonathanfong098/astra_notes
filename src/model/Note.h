@@ -39,6 +39,10 @@ public:
     // Traceability: FR-1 (refined) | UML: Note.getType
     virtual std::string getType() const = 0;
 
+    // Returns the displayable body text for the note; empty string for types that have none.
+    // Traceability: FR-1 (refined), FR-2 | UML: Note.getBody
+    virtual std::string getBody() const { return ""; }
+
     // Sets title_; caller (NoteManager) is responsible for validation before calling.
     // Traceability: FR-2 (refined) | UML: Note.setTitle
     void setTitle(const std::string& title);

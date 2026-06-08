@@ -39,6 +39,9 @@ void CLIView::renderNote(const UUID& uuid) const {
               << "Type:    " << note->getType()  << '\n'
               << "Title:   " << note->getTitle() << '\n'
               << "Created: " << timebuf          << '\n';
+    const std::string body = note->getBody();
+    if (!body.empty())
+        std::cout << "Body:\n" << body << '\n';
 }
 
 // Traceability: FR-1 (refined) | UML: CLIView.promptInput

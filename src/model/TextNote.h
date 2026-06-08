@@ -16,8 +16,8 @@ public:
     // Traceability: FR-1 (refined) | UML: TextNote.getType
     std::string getType() const override;
 
-    // Traceability: FR-1 (refined) | UML: TextNote.getBody
-    const std::string& getBody() const;
+    // Traceability: FR-1 (refined), FR-2 | UML: TextNote.getBody
+    std::string getBody() const override;
 
     // Traceability: FR-1 (refined) | UML: TextNote.setBody
     void setBody(std::string body);

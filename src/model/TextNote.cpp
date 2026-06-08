@@ -16,8 +16,8 @@ TextNote::TextNote(UUID uuid, std::string title, std::string body,
 // Traceability: FR-1 (refined) | UML: TextNote.getType
 std::string TextNote::getType() const { return "text"; }
 
-// Traceability: FR-1 (refined) | UML: TextNote.getBody
-const std::string& TextNote::getBody() const { return body_; }
+// Traceability: FR-1 (refined), FR-2 | UML: TextNote.getBody
+std::string TextNote::getBody() const { return body_; }
 
 // Traceability: FR-1 (refined) | UML: TextNote.setBody
 void TextNote::setBody(std::string body) { body_ = std::move(body); }

@@ -39,7 +39,7 @@ int main() {
     manager.loadAll(); // FR-4: deserialise notes from disk on startup
 
     std::cout << "AstraNotes v0.2  [" << storagePath << "]\n"
-              << "Commands: [n]ew  [l]ist  [v]iew  [e]dit  [d]elete  [s]ettings  [q]uit\n\n";
+              << "Commands: [n]ew  [l]ist  [v]iew  [e]dit  [d]elete  [s]ettings  [h]elp  [q]uit\n\n";
 
     std::string cmd;
     while (true) {
@@ -163,6 +163,19 @@ int main() {
                 std::cout << "Delete cancelled.\n";
             }
 
+        // ── [h] Help ────────────────────────────────────────────────────
+        } else if (cmd == "h" || cmd == "help") {
+            std::cout
+                << "Commands:\n"
+                << "  n  new note    — prompts for type (text/voice/secure) and title\n"
+                << "  l  list notes  — shows all notes (UUID, type, title)\n"
+                << "  v  view note   — prompts for UUID; unlocks SecureNote with passphrase\n"
+                << "  e  edit note   — prompts for UUID, field (title/body), new value\n"
+                << "  d  delete note — prompts for UUID and confirmation\n"
+                << "  s  settings    — not yet implemented\n"
+                << "  h  help        — show this message\n"
+                << "  q  quit        — saves all notes and exits\n";
+
         // ── [s] Settings (stub) ─────────────────────────────────────────
         } else if (cmd == "s") {
             // Lab-vs-UML reconciliation: CLIView UML has no settings method.
@@ -176,7 +189,7 @@ int main() {
             break;
 
         } else if (!cmd.empty()) {
-            std::cout << "Unknown command. Use n, l, v, e, d, s, or q.\n";
+            std::cout << "Unknown command. Type h for help.\n";
         }
     }
     return 0;

@@ -63,9 +63,6 @@ Status NoteManager::editTitle(const UUID& uuid, const std::string& newTitle) {
     auto it = notes_.find(uuid);
     if (it == notes_.end()) return Status::NOT_FOUND;
 
-    // SecureNote title editing is not permitted (title is the only unencrypted identifier).
-    if (dynamic_cast<const SecureNote*>(it->second.get())) return Status::INVALID_INPUT;
-
     // Validate before any mutation (atomic semantics — FR-2).
     const std::string trimmed = util::trim(newTitle);
     if (trimmed.empty() || trimmed.size() > 255)
